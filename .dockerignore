@@ -1,0 +1,14 @@
+.git
+.gitignore
+node_modules
+data
+output
+tmp
+.playwright-cli
+*.log
+.env
+candidate-page.json
+import-real*.json
+light-view.json
+real-run-view.json
+runs.json

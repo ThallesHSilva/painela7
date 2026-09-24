@@ -24,11 +24,15 @@ const runIndex = result => ({
 export function createApp({ dataDir = path.join(root, 'data') } = {}) {
   const app = express();
   app.disable('x-powered-by');
+  app.set('trust proxy', 1);
   app.use((req, res, next) => {
-    // Serviço local. Rejeita origens externas e DNS rebinding; não disponibilizar em rede sem autenticação.
-    if (!['127.0.0.1', 'localhost', '[::1]'].includes(req.hostname)) return res.status(403).json({ error: 'Host não autorizado.' });
+    // Mantém a proteção local por padrão; o deploy pode habilitar o host do proxy.
+    const remoteHostAllowed = process.env.ALLOW_REMOTE_HOST === '1' || process.env.NODE_ENV === 'production';
+    if (!remoteHostAllowed && !['127.0.0.1', 'localhost', '[::1]'].includes(req.hostname)) return res.status(403).json({ error: 'Host não autorizado.' });
     const origin = req.get('origin');
-    if (origin && origin !== `http://${req.get('host')}`) return res.status(403).json({ error: 'Origem não autorizada.' });
+    const configuredOrigin = process.env.PUBLIC_ORIGIN?.replace(/\/$/, '');
+    const requestOrigin = `${req.protocol}://${req.get('host')}`;
+    if (origin && origin !== configuredOrigin && origin !== requestOrigin) return res.status(403).json({ error: 'Origem não autorizada.' });
     res.set('X-Content-Type-Options', 'nosniff'); res.set('Cache-Control', 'no-store');
     res.set('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self' 'sha256-BgHKiJ6UdIm0oIDllgFWMaQcm8sVtslFi5XWQTAigus='; img-src 'self' data:; object-src 'none'; frame-ancestors 'none'");
     next();
@@ -258,5 +262,6 @@ export function createApp({ dataDir = path.join(root, 'data') } = {}) {
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const port = Number(process.env.PORT || 3210);
-  createApp().listen(port, '127.0.0.1', () => console.log(`QSC Gestão disponível em http://127.0.0.1:${port}`));
+  const host = process.env.HOST || '0.0.0.0';
+  createApp().listen(port, host, () => console.log(`QSC Gestão disponível em http://${host}:${port}`));
 }
