@@ -1,0 +1,125 @@
+/* Unified QSC workspace: purple identity with semantic band colors. */
+[hidden] { display: none !important; }
+.page-heading { padding: 28px 30px; background: radial-gradient(ellipse at top right, #e8d7f6, transparent 65%), linear-gradient(120deg, #fff, #f5effb); border: 1px solid #e7dcef; border-radius: 20px; gap: 24px; }
+.page-heading h1 { max-width: 700px; font: 500 34px/1.14 Georgia, serif; letter-spacing: -.8px; }
+.page-heading p { line-height: 1.6; }
+.page-heading > button { flex-shrink: 0; }
+.company-panel { margin-bottom: 20px; }
+.general-note { font-size: 10px; padding: 12px 0; background: transparent; border: 0; }
+.tabs { margin-top: 12px; margin-bottom: 24px; overflow-x: auto; white-space: nowrap; }
+.unified-view { display: grid; gap: 28px; }
+.unified-domain { border: 1px solid #e5daee; border-radius: 18px; background: #fff; overflow: hidden; box-shadow: 0 6px 22px #361c5205; }
+.unified-head { padding: 21px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; background: linear-gradient(110deg, #f7f2fb, #fcfaff); border-bottom: 1px solid #ede5f3; }
+.unified-head h2, .unified-filter h2 { font-size: 17px; font-weight: 600; letter-spacing: -.3px; margin: 0; }
+.unified-head .eyebrow, .unified-filter .eyebrow { margin: 0 0 7px; font-size: 9px; letter-spacing: 1.3px; }
+.semester-switch { display: flex; background: white; border: 1px solid #e4d8ec; border-radius: 9px; padding: 4px; gap: 3px; flex-shrink: 0; }
+.semester-switch button { border: 0; border-radius: 6px; background: transparent; color: #7b648c; font-size: 11px; padding: 9px 13px; }
+.semester-switch [aria-pressed="true"] { color: #fff; background: #69378e; box-shadow: 0 2px 5px #67338d22; }
+.semester-table { min-width: 950px; width: 100%; }
+.semester-table caption { text-align: left; padding: 15px 20px; color: #7d6d89; font-size: 11px; }
+.semester-table th, .semester-table td { padding: 15px 12px; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; font-size: 12px; }
+.semester-table thead th { font-size: 9px; letter-spacing: .55px; background: #faf7fc; }
+.semester-table th:first-child { text-align: left; padding-left: 24px; }
+.semester-table tbody th { min-width: 145px; color: #613782; font-weight: 600; }
+.semester-table .semester-total { background: #f7f1fb; color: #613782; font-size: 15px; font-weight: 700; }
+.unavailable { color: #b1a5ba; }
+.unified-note { margin: 0; padding: 14px 24px; font-size: 10px; color: #887793; border-top: 1px solid #f3edf7; }
+#unified-pulse > .unified-head { padding: 0 0 14px; border: 0; background: none; }
+.pulse-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 13px; }
+.pulse-card { border: 1px solid #e6ddec; background: white; border-radius: 13px; padding: 18px 16px 14px; text-align: left; color: var(--ink); box-shadow: 0 3px 12px #38244704; }
+.pulse-card:hover { border-color: #b492ce; background: #fdfbff; box-shadow: 0 5px 15px #62318c10; }
+.pulse-label { display: block; text-transform: uppercase; font-size: 9px; letter-spacing: .6px; font-weight: 600; min-height: 28px; color: #7c6f87; }
+.pulse-value { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 7px; font-size: 25px; letter-spacing: -.8px; font-weight: 600; color: #49285f; margin: 8px 0 16px; }
+.pulse-foot { border-top: 1px solid #eee7f3; padding-top: 11px; display: flex; justify-content: space-between; gap: 6px; font-size: 10px; color: #84738f; }
+.qsc-band { display: inline-flex; align-items: center; justify-content: center; border: 1px solid transparent; border-radius: 20px; padding: 4px 8px; font: 600 9px/1.2 system-ui,sans-serif; letter-spacing: 0; white-space: nowrap; }
+.indicator-band.band-1, .total-band.band-5 { color: #fff; background: #19835f; border-color: #19835f; }
+.indicator-band.band-2, .total-band.band-3 { color: #835a06; background: #fff3cc; border-color: #f4e3aa; }
+.indicator-band.band-3, .total-band.band-2 { color: #9a4d16; background: #ffeddf; border-color: #f7d6be; }
+.indicator-band.band-4, .total-band.band-1 { color: #fff; background: #c64256; border-color: #c64256; }
+.total-band.band-4 { color: #4c6819; background: #eef5d6; border-color: #d9e7b8; }
+.total-band.band-0 { color: #a43e4c; background: #fbe5e9; }
+.unified-filter { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.unified-filter p.small { margin: 7px 0 0; }
+.unified-filter select { width: auto; min-width: 165px; font-size: 11px; }
+#unified-domains { display: grid; gap: 22px; }
+.domain-title { display: flex; align-items: center; gap: 13px; }
+.domain-icon { width: 40px; height: 40px; border-radius: 11px; border: 1px solid #e5d8ef; background: #fff; color: #824cac; display: grid; place-items: center; font-size: 25px; }
+.domain-rating { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 10px; }
+.domain-rating strong { color: #54306f; font-size: 13px; }
+.domain-rating > .small { font-size: 10px; }
+.unified-metrics { min-width: 760px; width: 100%; }
+.unified-metrics th { font-size: 9px; padding: 13px 15px; letter-spacing: .6px; background: #fdfbfe; text-align: right; }
+.unified-metrics td { padding: 12px 15px; font-size: 12px; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.unified-metrics th:first-child, .unified-metrics td:first-child { text-align: left; padding-left: 23px; white-space: normal; }
+.unified-metrics .result-value { color: #6c3991; font-weight: 600; }
+.expand-metric { display: flex; align-items: center; gap: 9px; text-align: left; background: transparent; border: 0; padding: 0; color: #44324f; font-size: 12px; line-height: 1.45; }
+.expand-chevron { flex-shrink: 0; display: grid; place-items: center; width: 22px; height: 22px; background: #f7f2fb; border: 1px solid #e4d9ee; border-radius: 6px; color: #8c62ab; font-size: 15px; }
+.metric-open { background: #faf6fd; }
+.unified-metrics td.metric-detail { padding: 20px 24px; background: #faf7fd; text-align: left; }
+.detail-heading { display: flex; justify-content: space-between; align-items: center; gap: 15px; margin-bottom: 15px; }
+.detail-heading .eyebrow { margin-bottom: 7px; }
+.detail-heading p { margin: 0; font-size: 11px; color: #7b668b; }
+.metric-history { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 10px; }
+.metric-history article { background: white; border: 1px solid #e8dff0; border-radius: 10px; padding: 13px; }
+.metric-history article > strong { display: block; font-size: 20px; color: #764698; margin: 8px 0 12px; }
+.metric-history article > div { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 11px; }
+.metric-history small { display: block; margin-top: 9px; color: #92829e; font-size: 9px; }
+.detail-footer { display: flex; justify-content: space-between; gap: 10px; font-size: 10px; color: #806e8c; margin-top: 16px; }
+.detail-footer a { color: #67368c; }
+.report-hub-hero { display: grid; grid-template-columns: 1.2fr 1fr; align-items: center; gap: 48px; padding: 40px; background: linear-gradient(135deg, #f6effb, #fff); border: 1px solid #e3d6ee; border-radius: 18px; }
+.report-hub-hero h2 { font: 34px/1.15 Georgia,serif; color: #45245b; }
+.report-hub-hero p { line-height: 1.8; font-size: 12px; color: #877392; margin: 16px 0 24px; }
+.report-hub-hero .eyebrow { font-size: 9px; margin: 0 0 15px; }
+.report-preview { padding: 25px; background: #fff; border: 1px solid #e7dfed; border-top: 4px solid #6f3c96; border-radius: 5px; box-shadow: 0 16px 30px #4723600d; }
+.report-preview > span { color: #916ba9; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; }
+.report-preview h3 { font: 25px Georgia,serif; margin: 25px 0; }
+.report-preview > div { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+.report-preview article { padding: 12px; background: #f8f3fb; border-radius: 6px; }
+.report-preview article span { font-size: 10px; color: #866995; }
+.report-preview article strong { display: block; margin-top: 7px; font-size: 28px; color: #623587; }
+.report-preview p { font-size: 10px; margin-bottom: 0; }
+.report-chapters { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; margin-top: 22px; }
+.report-chapters a { padding: 22px; border: 1px solid #e7ddef; border-radius: 13px; background: #fff; text-decoration: none; color: #523666; }
+.report-chapters a:hover { border-color: #a57cc2; }
+.report-chapters span { font: 24px Georgia,serif; color: #b599ca; }
+.report-chapters h3 { font-size: 14px; margin: 14px 0 8px; }
+.report-chapters p { font-size: 11px; color: #96859e; }
+@media (max-width: 1200px) { .pulse-grid { grid-template-columns: repeat(3, minmax(0,1fr)); } .unified-head { padding: 18px; } .domain-rating { max-width: 260px; } main { padding: 25px; } }
+@media (max-width: 800px) { .page-heading { flex-direction: column; align-items: flex-start; padding: 24px; } .page-heading h1 { font-size: 30px; } .unified-head { flex-wrap: wrap; } .domain-rating { max-width: none; justify-content: flex-start; } .report-hub-hero { grid-template-columns: 1fr; gap: 25px; padding: 24px; } .report-chapters { grid-template-columns: 1fr; } }
+@media (max-width: 540px) { main { padding: 18px 14px; } .pulse-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; } .pulse-card { padding: 14px 12px; } .pulse-value { font-size: 23px; } .pulse-foot { flex-wrap: wrap; } .unified-filter { align-items: flex-start; flex-direction: column; } .unified-head h2 { font-size: 15px; } .company-heading { flex-direction: column; align-items: flex-start; gap: 15px; } .downloads { flex-wrap: wrap; } .history-bar { gap: 12px; } .history-bar label { width: 100%; } .history-bar select { min-width: 0; flex: 1; } .semester-switch button { padding: 8px 12px; } .detail-heading, .detail-footer { flex-wrap: wrap; } }
+
+/* Dark theme contrast pass for the unified QSC workspace. */
+ .unified-domain, .pulse-card, .metric-history article, .report-preview, .report-chapters a { background: #1e2e3a; border-color: #3b4e5c; color: #edf4f7; }
+ .unified-head { background: linear-gradient(110deg, #223b49, #1e2e3a); border-color: #3b4e5c; }
+ .unified-head h2, .unified-filter h2 { color: #edf4f7; }
+ .semester-switch { background: #1a2a35; border-color: #49616e; }
+ .semester-switch button { color: #c0d0d7; }
+ .semester-switch [aria-pressed="true"] { color: #fff; background: #5964bd; }
+ .semester-table caption, .unified-note, .detail-heading p, .metric-history small, .detail-footer, .report-hub-hero p, .report-chapters p { color: #a8bac4; }
+ .semester-table thead th, .unified-metrics th { background: #263b48; color: #c2d2d8; border-color: #3b4e5c; }
+ .semester-table tbody th { color: #e1edf1; }
+ .semester-table td, .unified-metrics td { color: #d5e3e8; border-color: #344956; }
+ .semester-table .semester-total { background: #304957; color: #f0f6f8; }
+ .unavailable { color: #8298a2; }
+ .unified-note { border-color: #3b4e5c; }
+ .pulse-card:hover { border-color: #7184d7; background: #263d49; }
+ .pulse-label { color: #b2c3ca; }
+ .pulse-value { color: #edf4f7; }
+ .pulse-foot { border-color: #3b4e5c; color: #a8bac4; }
+ .unified-filter .small { color: #a8bac4; }
+ .domain-icon { background: #2e4653; border-color: #49616e; color: #c0b8ff; }
+ .domain-rating strong { color: #edf4f7; }
+ .unified-metrics .result-value { color: #d6cfff; }
+ .expand-metric { color: #e3edf1; }
+ .expand-chevron { background: #2a4350; border-color: #52707d; color: #c0c8ff; }
+ .metric-open, .unified-metrics td.metric-detail { background: #1b2c37; }
+ .metric-history article > strong { color: #d6cfff; }
+ .report-hub-hero { background: linear-gradient(135deg, #223b49, #1d2b38); border-color: #46606d; }
+ .report-hub-hero h2 { color: #edf4f7; }
+ .report-preview { border-top-color: #8e7cf0; }
+ .report-preview > span, .report-chapters span { color: #aeb6ff; }
+ .report-preview article { background: #263d49; }
+ .report-preview article span { color: #b0c2ca; }
+ .report-preview article strong { color: #d6cfff; }
+ .report-chapters a { color: #edf4f7; }
+ .report-chapters a:hover { border-color: #8e7cf0; background: #263d49; }

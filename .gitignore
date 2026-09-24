@@ -1,0 +1,12 @@
+node_modules/
+.env
+data/
+tmp/
+output/
+*.log
+.playwright-cli/
+candidate-page.json
+import-real*.json
+light-view.json
+real-run-view.json
+runs.json
