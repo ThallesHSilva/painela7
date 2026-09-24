@@ -120,7 +120,7 @@ export function createApp({ dataDir = path.join(root, 'data') } = {}) {
   app.post('/api/quartil/import', express.raw({ type: 'application/json', limit: '10mb' }), async (req, res, next) => {
     if (!quartilImportToken || req.get('authorization') !== `Bearer ${quartilImportToken}`) return res.sendStatus(404);
     try {
-      const snapshot = JSON.parse(req.body.toString('utf8'));
+      const snapshot = Buffer.isBuffer(req.body) ? JSON.parse(req.body.toString('utf8')) : req.body;
       if (!Array.isArray(snapshot.consultants)) return res.status(422).json({ error: 'Snapshot de quartil inválido.' });
       await fs.mkdir(dataDir, { recursive: true });
       await fs.writeFile(path.join(dataDir, 'quartil.snapshot.json'), JSON.stringify(snapshot));
