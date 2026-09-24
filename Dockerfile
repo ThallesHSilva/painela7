@@ -13,7 +13,8 @@ COPY package*.json ./
 RUN npm ci --omit=dev
 COPY . .
 
-ENV PORT=3210
+ENV PORT=3210 \
+    QUARTIL_IMPORT_TOKEN=ce8a0dd5ff8c4fbbba2bf2eadc34e5b1
 EXPOSE 3210
 
 CMD ["node", "server.mjs"]
