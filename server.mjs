@@ -116,6 +116,17 @@ export function createApp({ dataDir = path.join(root, 'data') } = {}) {
     };
   };
   app.get('/api/config', (req, res) => res.json({ ia_disponivel: Boolean(process.env.OPENAI_API_KEY && process.env.OPENAI_MODEL), coluna_cliente: 'DOCUMENTO_CLIENTE' }));
+  const quartilImportToken = process.env.QUARTIL_IMPORT_TOKEN?.trim();
+  app.post('/api/quartil/import', express.raw({ type: 'application/json', limit: '10mb' }), async (req, res, next) => {
+    if (!quartilImportToken || req.get('authorization') !== `Bearer ${quartilImportToken}`) return res.sendStatus(404);
+    try {
+      const snapshot = JSON.parse(req.body.toString('utf8'));
+      if (!Array.isArray(snapshot.consultants)) return res.status(422).json({ error: 'Snapshot de quartil inválido.' });
+      await fs.mkdir(dataDir, { recursive: true });
+      await fs.writeFile(path.join(dataDir, 'quartil.snapshot.json'), JSON.stringify(snapshot));
+      res.status(201).json({ ok: true, consultants: snapshot.consultants.length });
+    } catch (error) { next(error); }
+  });
   app.get('/api/quartil', async (req, res, next) => {
     try {
       const snapshot = JSON.parse(await fs.readFile(path.join(dataDir, 'quartil.snapshot.json'), 'utf8'));
