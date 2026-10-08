@@ -94,3 +94,20 @@ test('importa planilha Excel de quartil e recalcula o snapshot', async t => {
   assert.equal(snapshot.rules.experienced.metrics.receita[0].min, 3000);
   assert.equal(snapshot.consultants[0].quartiles.receita, 5);
 });
+
+test('filtro de quartil aceita nome de parceiro com ou sem acento', async t => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'qsc-quartil-filter-test-'));
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet('Ago_26');
+  sheet.addRow(['Consultor', 'M de CASA', 'FISICOS MÓVEL', 'RECEITA MÓVEL', 'FISICOS FTTH', 'RECEITA FTTH', 'RECEITA TELECOM TT', 'Parceiro']);
+  sheet.addRow(['Ana Souza', 'ACIMA DE M3', 10, 100, 2, 20, 500, 'NOVA SUIÇA']);
+  sheet.addRow(['Bruno Lima', 'ACIMA DE M3', 20, 200, 3, 30, 700, 'A7 CONNECT']);
+  const buffer = await workbook.xlsx.writeBuffer();
+  const server = createApp({ dataDir: dir }).listen(0, '127.0.0.1'); await new Promise(resolve => server.once('listening', resolve));
+  t.after(async () => { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); await fs.rm(dir, { recursive: true, force: true }); });
+  const base = 'http://127.0.0.1:' + server.address().port;
+  const form = new FormData(); form.append('file', new Blob([buffer]), 'consultores.xlsx');
+  assert.equal((await fetch(base + '/api/quartil/import', { method: 'POST', body: form })).status, 201);
+  assert.equal((await (await fetch(base + '/api/quartil?partner=NOVA%20SUICA')).json()).consultants.length, 1);
+  assert.equal((await (await fetch(base + '/api/quartil?partner=A7%20CONNECT')).json()).consultants.length, 1);
+});

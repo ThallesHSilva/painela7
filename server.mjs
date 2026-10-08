@@ -18,6 +18,7 @@ import { QUARTIL_RULES, quartilesFor } from './frontend/quartil-rules.js';
 import { parseQuartilWorkbook } from './ingestion/quartil.mjs';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
+const partnerKey = value => String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const runIndex = result => ({
   periodo: result.periodo_referencia,
   data: result.data_processamento,
@@ -124,8 +125,8 @@ export function createApp({ dataDir = path.join(root, 'data') } = {}) {
       const snapshot = JSON.parse(await fs.readFile(path.join(dataDir, 'quartil.snapshot.json'), 'utf8'));
       let rules = null;
       try { rules = JSON.parse(await fs.readFile(path.join(dataDir, 'quartil.rules.json'), 'utf8')); } catch (error) { if (error.code !== 'ENOENT') throw error; }
-      const requested = new Set(req.query.partner ? [].concat(req.query.partner).map(String) : []);
-      const consultants = requested.size ? snapshot.consultants.filter(item => requested.has(item.partnerId)) : snapshot.consultants;
+      const requested = new Set(req.query.partner ? [].concat(req.query.partner).map(partnerKey) : []);
+      const consultants = requested.size ? snapshot.consultants.filter(item => requested.has(partnerKey(item.partnerId)) || requested.has(partnerKey(item.partnerName))) : snapshot.consultants;
       res.json({ ...snapshot, consultants, rules: rules?.rules ?? null, rulesSource: rules?.source ?? null });
     } catch (error) {
       if (error.code === 'ENOENT') return res.status(404).json({ error: 'Base de quartil ainda não foi importada.' });

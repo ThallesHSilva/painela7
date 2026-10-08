@@ -68,3 +68,18 @@ test('lê planilha Excel mensal de consultores', async () => {
   assert.equal(parsed.snapshot.consultants[0].values.receita, 500);
   assert.equal(parsed.snapshot.consultants[1].tenure, 'new');
 });
+
+test('vincula o consultor ao parceiro da ultima competencia', async () => {
+  const workbook = new ExcelJS.Workbook();
+  const oldSheet = workbook.addWorksheet('Jul_26');
+  oldSheet.addRow(['Consultor', 'M de CASA', 'FISICOS MÓVEL', 'RECEITA MÓVEL', 'FISICOS FTTH', 'RECEITA FTTH', 'RECEITA TELECOM TT', 'Parceiro']);
+  oldSheet.addRow(['Ana Souza', 'ACIMA DE M3', 10, 100, 2, 20, 500, 'A7 CONNECT']);
+  const currentSheet = workbook.addWorksheet('Ago_26');
+  currentSheet.addRow(['Consultor', 'M de CASA', 'FISICOS MÓVEL', 'RECEITA MÓVEL', 'FISICOS FTTH', 'RECEITA FTTH', 'RECEITA TELECOM TT', 'Parceiro']);
+  currentSheet.addRow(['Ana Souza', 'ACIMA DE M3', 12, 120, 3, 30, 700, 'NOVA SUIÇA']);
+  const parsed = await parseQuartilWorkbook(await workbook.xlsx.writeBuffer(), 'troca-parceiro.xlsx');
+  assert.equal(parsed.snapshot.consultants.length, 1);
+  assert.equal(parsed.snapshot.consultants[0].partnerId, 'nova-suica');
+  assert.equal(parsed.snapshot.consultants[0].partnerName, 'NOVA SUIÇA');
+  assert.equal(parsed.snapshot.consultants[0].history.length, 2);
+});

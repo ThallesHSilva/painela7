@@ -1,6 +1,7 @@
 import { renderUnified } from './unified.js';
 import { alertFor, quartilScore, rankQuartilConsultants, setQuartilRules, QUARTIL_LABELS, QUARTIL_METRICS, QUARTIL_RULES } from './quartil-rules.js';
 const $ = s => document.querySelector(s);
+const searchKey = value => String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const fmt = n => n === null || n === undefined ? '—' : new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 }).format(n);
 const labels = { carteira: 'Carteira', fixa: 'Fixa', movel: 'Móvel' };
@@ -47,7 +48,7 @@ function renderQuartil() {
   const evolution = value => value === null || value === undefined ? 'Sem histórico' : value > 0 ? 'Evoluiu' : value < 0 ? 'Regrediu' : 'Neutro';
   const isAlert = row => alertFor(row).active;
   const matchesMovement = (row, filter) => filter === 'Alerta' ? isAlert(row) : [3, 6].some(months => evolution(change(row, months)) === filter);
-  const filtered = data.consultants.filter(row => !quartilSearch || `${row.name} ${row.partnerName}`.toLocaleLowerCase('pt-BR').includes(quartilSearch)).filter(row => !quartilEvolutionFilter || matchesMovement(row, quartilEvolutionFilter)).filter(row => !selectedQuartilBand || row.quartiles[selectedQuartilMetric] === selectedQuartilBand).filter(row => !quartilTenureFilter || row.tenure === quartilTenureFilter);
+  const filtered = data.consultants.filter(row => !quartilSearch || searchKey(`${row.name} ${row.partnerName}`).includes(quartilSearch)).filter(row => !quartilEvolutionFilter || matchesMovement(row, quartilEvolutionFilter)).filter(row => !selectedQuartilBand || row.quartiles[selectedQuartilMetric] === selectedQuartilBand).filter(row => !quartilTenureFilter || row.tenure === quartilTenureFilter);
   const rows = rankQuartilConsultants(filtered, quartilRankingMode, selectedQuartilMetric);
   const counts = [1, 2, 3, 4, 5].map(q => data.consultants.filter(row => row.quartiles[selectedQuartilMetric] === q).length);
   const total = data.consultants.length || 1;
@@ -136,7 +137,7 @@ function renderQuartil() {
     row?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   });
   target.querySelectorAll('[data-evolution]').forEach(button => button.onclick = () => { quartilEvolutionFilter = quartilEvolutionFilter === button.dataset.evolution ? null : button.dataset.evolution; renderQuartil(); });
-  $('#quartil-search').oninput = event => { quartilSearch = event.target.value.toLocaleLowerCase('pt-BR'); renderQuartil(); const input = $('#quartil-search'); input.focus(); input.setSelectionRange(input.value.length, input.value.length); };
+  $('#quartil-search').oninput = event => { quartilSearch = searchKey(event.target.value); renderQuartil(); const input = $('#quartil-search'); input.focus(); input.setSelectionRange(input.value.length, input.value.length); };
   $('#quartil-clear-filter')?.addEventListener('click', () => { quartilEvolutionFilter = null; renderQuartil(); });
 }
 const executiveNav = document.querySelector('body > nav.executive-nav:not(.executive-nav-cert)');

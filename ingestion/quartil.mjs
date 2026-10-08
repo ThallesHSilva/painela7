@@ -130,19 +130,19 @@ function consultantSnapshot(workbook, filename) {
       if (!name) continue;
       const partnerName = textOf(header.indexes.partner ? row.getCell(header.indexes.partner).value : '').trim() || 'Sem parceiro';
       const partnerId = keyFor(partnerName);
-      const id = partnerId + ':' + personKey(name);
+      const consultantKey = personKey(name);
       const tenureText = textOf(header.indexes.tenure ? row.getCell(header.indexes.tenure).value : '').trim();
       const tenure = /abaixo|ate 3|menos de 3/.test(normalize(tenureText)) ? 'new' : 'experienced';
       const point = {
-        id, name, partnerId, partnerName, month, tenure,
+        id: consultantKey, name, partnerId, partnerName, month, tenure,
         values: {
           receita: numberValue(row.getCell(header.indexes.revenue).value),
           movel: numberValue(row.getCell(header.indexes.movel).value),
           ftth: numberValue(row.getCell(header.indexes.ftth).value),
         },
       };
-      if (!groups.has(id)) groups.set(id, []);
-      const history = groups.get(id);
+      if (!groups.has(consultantKey)) groups.set(consultantKey, []);
+      const history = groups.get(consultantKey);
       const sameMonth = history.findIndex(item => item.month === month);
       if (sameMonth >= 0) history[sameMonth] = point;
       else history.push(point);
@@ -150,11 +150,12 @@ function consultantSnapshot(workbook, filename) {
   }
   if (!sheets.length || !groups.size) return null;
   const orderedMonths = [...months].sort();
-  const partners = [...new Map([...groups.values()].flat().map(point => [point.partnerId, { id: point.partnerId, name: point.partnerName }])).values()];
   const consultants = [...groups.values()].map(history => {
     history.sort((a, b) => a.month.localeCompare(b.month));
-    return { ...history.at(-1), history };
+    const latest = history.at(-1);
+    return { ...latest, id: latest.partnerId + ':' + personKey(latest.name), history };
   });
+  const partners = [...new Map(consultants.map(consultant => [consultant.partnerId, { id: consultant.partnerId, name: consultant.partnerName }])).values()];
   return {
     source: { report: filename, importedAt: new Date().toISOString(), sheets, rows: consultants.length },
     latestMonth: orderedMonths.at(-1),
