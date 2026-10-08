@@ -150,15 +150,16 @@ function consultantSnapshot(workbook, filename) {
   }
   if (!sheets.length || !groups.size) return null;
   const orderedMonths = [...months].sort();
-  const consultants = [...groups.values()].map(history => {
+  const latestMonth = orderedMonths.at(-1);
+  const consultants = [...groups.values()].filter(history => history.some(point => point.month === latestMonth)).map(history => {
     history.sort((a, b) => a.month.localeCompare(b.month));
-    const latest = history.at(-1);
+    const latest = history.find(point => point.month === latestMonth) ?? history.at(-1);
     return { ...latest, id: latest.partnerId + ':' + personKey(latest.name), history };
   });
   const partners = [...new Map(consultants.map(consultant => [consultant.partnerId, { id: consultant.partnerId, name: consultant.partnerName }])).values()];
   return {
     source: { report: filename, importedAt: new Date().toISOString(), sheets, rows: consultants.length },
-    latestMonth: orderedMonths.at(-1),
+    latestMonth,
     months: orderedMonths,
     partners,
     consultants,
