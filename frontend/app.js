@@ -6,7 +6,7 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 const fmt = n => n === null || n === undefined ? '—' : new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 }).format(n);
 const labels = { carteira: 'Carteira', fixa: 'Fixa', movel: 'Móvel' };
 let result, selectedCompany, activeTab = 'indicators', reviewing, config, selectedFiles = [], selectedQuartilFile = null, page = 0, treatmentRequest = 0, searchTimer;
-let quartilSnapshot = null, selectedQuartilMetric = 'receita', quartilRankingMode = 'score', quartilSearch = '', quartilEvolutionFilter = null, selectedQuartilBand = null, quartilTenureFilter = null, expandedQuartilConsultant = null;
+let activeExecutiveSection = 'qsc', quartilSnapshot = null, selectedQuartilMetric = 'receita', quartilRankingMode = 'score', quartilSearch = '', quartilPartnerFilter = '', quartilEvolutionFilter = null, selectedQuartilBand = null, quartilTenureFilter = null, expandedQuartilConsultant = null;
 function notice(message, error = false) { $('#notice').hidden = !message; $('#notice').textContent = message; $('#notice').className = error ? 'error' : ''; }
 async function api(url, options) { const response = await fetch(url, options); const data = await response.json(); if (!response.ok) { const extra = (data.ocorrencias ?? []).slice(0, 6).map(x => x.mensagem).join(' · '); throw new Error(data.error + (extra ? ` ${extra}` : '')); } return data; }
 async function busy(button, work) { const old = button.textContent; button.disabled = true; button.textContent = 'Processando…'; try { await work(); } catch (e) { notice(e.message, true); } finally { button.disabled = false; button.textContent = old; } }
@@ -15,6 +15,8 @@ const prefix = () => `/api/runs/${result.processamento_id}/company/${selectedCom
 const post = (url, body) => api(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 const openImport = () => $('#import-dialog').showModal();
 function showExecutiveSection(section) {
+  activeExecutiveSection = section;
+  renderTopFilter();
   const module = section === 'certificacao' ? $('#module-certificacao') : section === 'quartil' ? $('#quartil-live') : null;
   const qscChrome = ['.page-heading', '.history-bar', '#notice'];
   qscChrome.forEach(selector => { const node = $(selector); if (node) node.hidden = section !== 'qsc'; });
@@ -35,6 +37,7 @@ async function loadQuartil() {
     quartilSnapshot = await api('/api/quartil');
     if (quartilSnapshot.rules) setQuartilRules(quartilSnapshot.rules);
     renderQuartil();
+    renderTopFilter();
   } catch (error) { target.innerHTML = `<div class="module-empty"><strong>Base de quartil indisponível</strong><p>${esc(error.message)}</p></div>`; }
 }
 function renderQuartil() {
@@ -48,10 +51,11 @@ function renderQuartil() {
   const evolution = value => value === null || value === undefined ? 'Sem histórico' : value > 0 ? 'Evoluiu' : value < 0 ? 'Regrediu' : 'Neutro';
   const isAlert = row => alertFor(row).active;
   const matchesMovement = (row, filter) => filter === 'Alerta' ? isAlert(row) : [3, 6].some(months => evolution(change(row, months)) === filter);
-  const filtered = data.consultants.filter(row => !quartilSearch || searchKey(`${row.name} ${row.partnerName}`).includes(quartilSearch)).filter(row => !quartilEvolutionFilter || matchesMovement(row, quartilEvolutionFilter)).filter(row => !selectedQuartilBand || row.quartiles[selectedQuartilMetric] === selectedQuartilBand).filter(row => !quartilTenureFilter || row.tenure === quartilTenureFilter);
+  const partnerScoped = data.consultants.filter(row => !quartilPartnerFilter || row.partnerId === quartilPartnerFilter);
+  const filtered = partnerScoped.filter(row => !quartilSearch || searchKey(`${row.name} ${row.partnerName}`).includes(quartilSearch)).filter(row => !quartilEvolutionFilter || matchesMovement(row, quartilEvolutionFilter)).filter(row => !selectedQuartilBand || row.quartiles[selectedQuartilMetric] === selectedQuartilBand).filter(row => !quartilTenureFilter || row.tenure === quartilTenureFilter);
   const rows = rankQuartilConsultants(filtered, quartilRankingMode, selectedQuartilMetric);
-  const counts = [1, 2, 3, 4, 5].map(q => data.consultants.filter(row => row.quartiles[selectedQuartilMetric] === q).length);
-  const total = data.consultants.length || 1;
+  const counts = [1, 2, 3, 4, 5].map(q => partnerScoped.filter(row => row.quartiles[selectedQuartilMetric] === q).length);
+  const total = partnerScoped.length || 1;
   const ratioPercent = (value, denominator) => `${Math.max(0, Math.min(100, Number((value / denominator * 100).toFixed(2))))}%`;
   const ratioClass = value => `ratio-${Math.round(parseFloat(value) || 0)}`;
   const movementClass = label => ({ 'Evoluiu': 'evoluiu', 'Regrediu': 'regrediu', 'Neutro': 'neutro', 'Sem histórico': 'sem-historico', 'Alerta': 'alerta' }[label] || 'sem-historico');
@@ -71,8 +75,8 @@ function renderQuartil() {
   };
   const dist = counts.map((count, i) => { const ratio = ratioPercent(count, total); return `<div class="quartil-dist-segment q${i + 1} ${ratioClass(ratio)} ${selectedQuartilBand === i + 1 ? 'active' : ''}" data-ratio="${ratio}" title="Q${i + 1}: ${count}">${count / total >= 0.07 ? `<span>Q${i + 1}</span>` : ''}</div>`; }).join('');
   const legend = counts.map((count, i) => { const q = i + 1, active = selectedQuartilBand === q; return `<button class="quartil-legend-item q${q}-item ${active ? 'active' : ''}" data-quartile="${q}" aria-pressed="${active}" title="Filtrar ranking pela faixa Q${q}"><span class="quartil-legend-label"><i class="q${q}"></i>Q${q}</span><strong>${count}</strong><small>${Math.round(count / total * 100)}% da base</small></button>`; }).join('');
-  const evolutionCards = period => ['Evoluiu', 'Regrediu', 'Neutro', 'Alerta'].map(label => { const count = label === 'Alerta' ? data.consultants.filter(isAlert).length : data.consultants.filter(row => evolution(change(row, period)) === label).length, active = quartilEvolutionFilter === label; return `<button class="quartil-stat-button ${movementClass(label)} ${active ? 'active' : ''}" data-evolution="${label}" aria-pressed="${active}"><span class="quartil-stat-label">${label}</span><strong>${count}</strong><small>${Math.round(count / total * 100)}% · ${period} meses</small></button>`; }).join('');
-  const partnerRows = data.partners.map(partner => { const list = data.consultants.filter(row => row.partnerId === partner.id); const nums = [1, 2, 3, 4, 5].map(q => list.filter(row => row.quartiles[selectedQuartilMetric] === q).length); return `<tr><td><strong>${esc(partner.name)}</strong></td><td>${list.length}</td><td><div class="quartil-mini-band">${nums.map((n, i) => { const ratio = ratioPercent(n, list.length || 1); return `<i class="q${i + 1} ${ratioClass(ratio)}" data-ratio="${ratio}"></i>`; }).join('')}</div></td>${nums.map(n => `<td>${n}</td>`).join('')}</tr>`; }).join('');
+  const evolutionCards = period => ['Evoluiu', 'Regrediu', 'Neutro', 'Alerta'].map(label => { const count = label === 'Alerta' ? partnerScoped.filter(isAlert).length : partnerScoped.filter(row => evolution(change(row, period)) === label).length, active = quartilEvolutionFilter === label; return `<button class="quartil-stat-button ${movementClass(label)} ${active ? 'active' : ''}" data-evolution="${label}" aria-pressed="${active}"><span class="quartil-stat-label">${label}</span><strong>${count}</strong><small>${Math.round(count / total * 100)}% · ${period} meses</small></button>`; }).join('');
+  const partnerRows = data.partners.filter(partner => !quartilPartnerFilter || partner.id === quartilPartnerFilter).map(partner => { const list = partnerScoped.filter(row => row.partnerId === partner.id); const nums = [1, 2, 3, 4, 5].map(q => list.filter(row => row.quartiles[selectedQuartilMetric] === q).length); return `<tr><td><strong>${esc(partner.name)}</strong></td><td>${list.length}</td><td><div class="quartil-mini-band">${nums.map((n, i) => { const ratio = ratioPercent(n, list.length || 1); return `<i class="q${i + 1} ${ratioClass(ratio)}" data-ratio="${ratio}"></i>`; }).join('')}</div></td>${nums.map(n => `<td>${n}</td>`).join('')}</tr>`; }).join('');
   const executiveDetailRow = row => {
     const analysis = consultantAnalysis(row);
     const latestQuartiles = Object.entries(row.quartiles || {}).filter(([, value]) => Number.isFinite(value));
@@ -97,6 +101,7 @@ function renderQuartil() {
   const tenureFilters = [['experienced', 'Acima de 3 meses'], ['new', 'Abaixo de 3 meses']].map(([value, label]) => `<button class="quartil-tenure-button ${quartilTenureFilter === value ? 'active' : ''}" data-tenure="${value}" aria-pressed="${quartilTenureFilter === value}">${label}</button>`).join('');
   const rankingFilters = [['score', 'Score'], ['metric', metricLabels[selectedQuartilMetric]]].map(([value, label]) => `<button class="quartil-ranking-mode-button ${quartilRankingMode === value ? 'active' : ''}" data-ranking-mode="${value}" aria-pressed="${quartilRankingMode === value}">${label}</button>`).join('');
   const activeFilters = [
+    quartilPartnerFilter ? `<button class="quartil-filter-chip" data-partner="${esc(quartilPartnerFilter)}">Parceiro: ${esc(data.partners.find(partner => partner.id === quartilPartnerFilter)?.name || quartilPartnerFilter)} <span aria-hidden="true">×</span></button>` : '',
     selectedQuartilBand ? `<button class="quartil-filter-chip" data-quartile="${selectedQuartilBand}">Faixa Q${selectedQuartilBand} · ${metricLabels[selectedQuartilMetric]} <span aria-hidden="true">×</span></button>` : '',
     quartilTenureFilter ? `<button class="quartil-filter-chip" data-tenure="${quartilTenureFilter}">${tenureLabel(quartilTenureFilter)} <span aria-hidden="true">×</span></button>` : '',
     quartilEvolutionFilter ? `<button class="quartil-filter-chip" id="quartil-clear-filter">${quartilEvolutionFilter} <span aria-hidden="true">×</span></button>` : ''
@@ -127,6 +132,7 @@ function renderQuartil() {
   target.querySelectorAll('[data-metric]').forEach(button => button.onclick = () => { selectedQuartilMetric = button.dataset.metric; selectedQuartilBand = null; expandedQuartilConsultant = null; renderQuartil(); });
   target.querySelectorAll('[data-ranking-mode]').forEach(button => button.onclick = () => { quartilRankingMode = button.dataset.rankingMode; expandedQuartilConsultant = null; renderQuartil(); });
   target.querySelectorAll('[data-quartile]').forEach(button => button.onclick = () => { const value = Number(button.dataset.quartile); selectedQuartilBand = selectedQuartilBand === value ? null : value; expandedQuartilConsultant = null; renderQuartil(); });
+  target.querySelectorAll('[data-partner]').forEach(button => button.onclick = () => { quartilPartnerFilter = ''; renderQuartil(); renderTopFilter(); });
   target.querySelectorAll('[data-tenure]').forEach(button => button.onclick = () => { quartilTenureFilter = quartilTenureFilter === button.dataset.tenure ? null : button.dataset.tenure; expandedQuartilConsultant = null; renderQuartil(); });
   target.querySelectorAll('.quartil-row-toggle').forEach(button => button.onclick = () => {
     const id = button.dataset.consultant;
@@ -250,7 +256,20 @@ $('#import-form').onsubmit = event => { event.preventDefault(); busy($('#import-
   finally { $('#files').disabled = false; }
 }); };
 $('#period').onchange = async () => { $('#period').disabled = true; notice('Atualizando os resultados da competência…'); try { result = await post(`/api/runs/${result.processamento_id}/period`, { period: $('#period').value }); render(); notice(''); } catch (e) { $('#period').value = result.periodo_referencia; notice(e.message, true); } finally { $('#period').disabled = false; } };
-$('#company-select').onchange = event => { selectedCompany = event.target.value; page = 0; render(); };
+$('#company-select').onchange = event => {
+  if (activeExecutiveSection === 'quartil') {
+    quartilPartnerFilter = event.target.value;
+    selectedQuartilBand = null;
+    quartilEvolutionFilter = null;
+    quartilTenureFilter = null;
+    expandedQuartilConsultant = null;
+    renderQuartil();
+  } else {
+    selectedCompany = event.target.value;
+    page = 0;
+    render();
+  }
+};
 $('#domain-filter').onchange = renderIndicators;
 $('#client-search').oninput = () => { page = 0; clearTimeout(searchTimer); searchTimer = setTimeout(renderTreatments, 250); };
 document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { activeTab = b.dataset.tab; renderTabs(); });
@@ -260,12 +279,26 @@ function renderCompanies() {
   select.innerHTML = result.empresas.map(e => `<option value="${esc(e.empresa_id)}">${esc(e.empresa_nome)}</option>`).join('');
   select.value = selectedCompany;
 }
+function renderTopFilter() {
+  const select = $('#company-select');
+  if (!select) return;
+  if (activeExecutiveSection === 'quartil') {
+    const partners = quartilSnapshot?.partners ?? [];
+    if (quartilPartnerFilter && !partners.some(partner => partner.id === quartilPartnerFilter)) quartilPartnerFilter = '';
+    select.setAttribute('aria-label', 'Filtrar parceiro do Quartil');
+    select.innerHTML = '<option value="">Todos os parceiros</option>' + partners.map(partner => `<option value="${esc(partner.id)}">${esc(partner.name)}</option>`).join('');
+    select.value = quartilPartnerFilter;
+  } else if (result) {
+    select.setAttribute('aria-label', 'Selecionar empresa');
+    renderCompanies();
+  }
+}
 function render() {
   if (!result) return;
   $('#empty').hidden = true; $('#dashboard').hidden = false; $('#period-label').hidden = false;
   $('#period').innerHTML = result.periodos_disponiveis.map(p => `<option ${p === result.periodo_referencia ? 'selected' : ''}>${p}</option>`).join('');
   $('#processed-at').textContent = `Bases atualizadas em ${new Date(result.bases_atualizadas_em || result.data_processamento).toLocaleString('pt-BR')}`;
-  renderCompanies(); const e = company(); if (!e) return;
+  renderTopFilter(); const e = company(); if (!e) return;
   const prior = e.historico.filter(h => h.competencia < result.periodo_referencia).at(-1);
   const priorNotes = new Map((prior?.dominios ?? []).map(item => [item.dominio, item.nota]));
   $('#scores').innerHTML = e.dominios.map(d => { const delta = d.nota == null || priorNotes.get(d.dominio) == null ? null : d.nota - priorNotes.get(d.dominio); const trend = delta == null ? 'Sem histórico anterior' : `${delta > 0 ? '▲' : delta < 0 ? '▼' : '•'} ${delta > 0 ? '+' : ''}${fmt(delta)} pts vs. mês anterior`; return `<article class="score"><div class="score-label">QSC ${labels[d.dominio]}<span class="badge ${d.parcial ? 'warn' : 'good'}">${d.parcial ? 'Parcial' : 'Completo'}</span></div><div class="value">${fmt(d.nota)} <span>/ 100</span></div><meter class="score-meter" min="0" max="100" value="${d.barra_nota}" aria-label="Nota QSC ${labels[d.dominio]}" ${d.nota === null ? 'hidden' : ''}></meter><div class="score-band-scale" aria-label="Faixa ${d.faixa ?? 'sem dados'}">${[1, 2, 3, 4, 5].map(level => `<i class="${d.faixa != null && level <= d.faixa ? 'active' : ''}"></i>`).join('')}</div><div class="score-foot"><span>${d.faixa === null ? 'Sem dados' : `Faixa ${d.faixa} · ${fmt(d.pontos)} pts`}</span><span>${e.indicadores_calculados ?? d.indicadores_calculados}/${e.indicadores_esperados ?? d.indicadores_esperados} indicadores</span></div><div class="score-trend ${delta > 0 ? 'up' : delta < 0 ? 'down' : ''}">${trend}</div></article>`; }).join('');
