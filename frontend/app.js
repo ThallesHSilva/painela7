@@ -142,13 +142,8 @@ const footer = document.querySelector('main > footer');
 if (footer) document.querySelector('main').append(footer);
 document.querySelector('.executive-nav-cert')?.remove();
 document.querySelector('#nav-report')?.remove();
+document.querySelectorAll('#nav-overview').forEach(node => node.remove());
 if (executiveNav) {
-  const certificationButton = document.createElement('button');
-  certificationButton.className = 'nav-link';
-  certificationButton.id = 'nav-certificacao';
-  certificationButton.textContent = 'Certificação';
-  certificationButton.onclick = () => showExecutiveSection('certificacao');
-  executiveNav.append(certificationButton);
   const navActions = document.createElement('div');
   navActions.className = 'nav-actions';
   const companySelect = document.createElement('select');
@@ -173,7 +168,6 @@ document.querySelectorAll('#nav-overview').forEach((button, index) => {
 $('#nav-quartil').onclick = () => showExecutiveSection('quartil');
 document.querySelectorAll('[data-module-import]').forEach(button => button.onclick = openImport);
 for (const id of ['open-import', 'empty-import', 'nav-import']) { const node = $(`#${id}`); if (node) node.onclick = openImport; }
-$('#nav-overview').onclick = () => { showExecutiveSection('qsc'); activeTab = 'indicators'; renderTabs(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
 document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => $(`#${b.dataset.close}`).close());
 let inspectionRequest = 0;
 const importHeading = $('#import-dialog h2');
@@ -320,3 +314,4 @@ try {
   else $('#empty').hidden = false;
   notice('');
 } catch (e) { notice(e.message, true); }
+showExecutiveSection('quartil');
