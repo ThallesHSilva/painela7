@@ -43,7 +43,7 @@ async function loadQuartil() {
 function renderQuartil() {
   const data = quartilSnapshot, target = $('#quartil-content');
   const metricLabels = QUARTIL_LABELS;
-  const fmtMoney = value => value === null || value === undefined ? '—' : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(value);
+  const fmtMoney = value => value === null || value === undefined ? '—' : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
   const valueLabel = (metric, value) => metric === 'receita' ? fmtMoney(value) : fmt(value);
   const quartile = value => value === null || value === undefined ? '<span class="quartil-missing">Sem dado</span>' : `<span class="quartil-q q${value}">Q${value}</span>`;
   const score = quartilScore;
@@ -98,8 +98,8 @@ function renderQuartil() {
   };
   const metricCell = (row, metric) => `<td class="quartil-cell-q ${metric === selectedQuartilMetric ? 'is-metric' : ''}" data-label="${metricLabels[metric]}">${quartile(row.quartiles[metric])}</td>`;
   const rankingRows = rows.map((row, index) => { const expanded = expandedQuartilConsultant === row.id; const scoreRatio = ratioPercent(score(row), 15); const alert = alertFor(row); return `<tr class="quartil-consultant-row ${expanded ? 'expanded' : ''} ${alert.active ? 'has-alert' : ''} ${index < 3 ? 'is-podium' : ''}" data-consultant-row="${esc(row.id)}"><td class="quartil-cell-consultant"><button class="quartil-row-toggle" data-consultant="${esc(row.id)}" aria-expanded="${expanded}"${expanded ? ` aria-controls="quartil-detail-${esc(row.id)}"` : ''}><span class="quartil-rank">${index + 1}º</span><span class="quartil-row-identity"><strong>${esc(row.name)}</strong><small>${esc(row.partnerName)}</small>${alert.active ? `<small class="quartil-row-alert">Alerta Q5 · ${alert.months} meses</small>` : ''}<small class="quartil-row-action">${expanded ? 'Ocultar análise individual' : 'Ver análise individual'}</small></span><span class="quartil-row-chevron">${chevron}</span></button></td><td class="quartil-cell-points" data-label="Pontos"><span class="quartil-points"><strong>${score(row)}</strong><span class="quartil-points-total">/15</span></span><span class="quartil-score-bar" aria-hidden="true"><i class="${ratioClass(scoreRatio)}" data-ratio="${scoreRatio}"></i></span></td><td data-label="Tempo de casa"><span class="quartil-tenure-tag ${row.tenure === 'new' ? 'is-new' : ''}">${tenureLabel(row.tenure)}</span></td>${QUARTIL_METRICS.map(metric => metricCell(row, metric)).join('')}<td class="quartil-cell-value is-metric" data-label="${metricLabels[selectedQuartilMetric]} atual">${valueLabel(selectedQuartilMetric, row.values[selectedQuartilMetric])}</td><td data-label="Evolução 3 meses">${movementBadge(change(row, 3))}</td><td data-label="Evolução 6 meses">${movementBadge(change(row, 6))}</td></tr>${expanded ? executiveDetailRow(row) : ''}`; }).join('') || '<tr><td colspan="9" class="quartil-empty-row"><strong>Nenhum consultor encontrado</strong><span>Ajuste a busca ou remova um dos filtros ativos.</span></td></tr>';
-  const tenureFilters = [['experienced', 'Acima de 3 meses'], ['new', 'Abaixo de 3 meses']].map(([value, label]) => `<button class="quartil-tenure-button ${quartilTenureFilter === value ? 'active' : ''}" data-tenure="${value}" aria-pressed="${quartilTenureFilter === value}">${label}</button>`).join('');
-  const rankingFilters = [['score', 'Score'], ['metric', metricLabels[selectedQuartilMetric]]].map(([value, label]) => `<button class="quartil-ranking-mode-button ${quartilRankingMode === value ? 'active' : ''}" data-ranking-mode="${value}" aria-pressed="${quartilRankingMode === value}">${label}</button>`).join('');
+  const tenureFilters = [['experienced', 'Acima de 3 meses'], ['new', 'Abaixo de 3 meses']].map(([value, label]) => `<button class="quartil-tenure-button quartil-tenure-${value} ${quartilTenureFilter === value ? 'active' : ''}" data-tenure="${value}" aria-pressed="${quartilTenureFilter === value}">${label}</button>`).join('');
+  const rankingFilters = [['score', 'Score'], ['metric', metricLabels[selectedQuartilMetric]]].map(([value, label]) => `<button class="quartil-ranking-mode-button quartil-ranking-mode-${value === 'score' ? 'score' : selectedQuartilMetric} ${quartilRankingMode === value ? 'active' : ''}" data-ranking-mode="${value}" aria-pressed="${quartilRankingMode === value}">${label}</button>`).join('');
   const activeFilters = [
     quartilPartnerFilter ? `<button class="quartil-filter-chip" data-partner="${esc(quartilPartnerFilter)}">Escritório: ${esc(data.partners.find(partner => partner.id === quartilPartnerFilter)?.name || quartilPartnerFilter)} <span aria-hidden="true">×</span></button>` : '',
     selectedQuartilBand ? `<button class="quartil-filter-chip" data-quartile="${selectedQuartilBand}">Faixa Q${selectedQuartilBand} · ${metricLabels[selectedQuartilMetric]} <span aria-hidden="true">×</span></button>` : '',
@@ -115,7 +115,7 @@ function renderQuartil() {
   const metricToolbar = target.querySelector('.quartil-toolbar');
   if (metricToolbar) {
     metricToolbar.classList.add('quartil-toolbar-compact');
-    metricToolbar.innerHTML = `<div class="quartil-metric-switcher" role="group" aria-label="Métrica de análise">${Object.entries(metricLabels).map(([key, label]) => `<button class="${key === selectedQuartilMetric ? 'active' : ''}" data-metric="${key}" aria-pressed="${key === selectedQuartilMetric}">${label}</button>`).join('')}</div>`;
+    metricToolbar.innerHTML = `<div class="quartil-metric-switcher" role="group" aria-label="Métrica de análise">${Object.entries(metricLabels).map(([key, label]) => `<button class="quartil-metric-${key} ${key === selectedQuartilMetric ? 'active' : ''}" data-metric="${key}" aria-pressed="${key === selectedQuartilMetric}">${label}</button>`).join('')}</div>`;
   }
   const officeMeta = [...target.querySelectorAll('.quartil-meta dt')].find(node => node.textContent === 'Parceiros');
   if (officeMeta) officeMeta.textContent = 'Escritórios';
@@ -303,7 +303,7 @@ function renderTopFilter() {
     const partners = quartilSnapshot?.partners ?? [];
     if (quartilPartnerFilter && !partners.some(partner => partner.id === quartilPartnerFilter)) quartilPartnerFilter = '';
     select.setAttribute('aria-label', 'Filtrar escritório do Quartil');
-    select.innerHTML = '<option value="">Todos os parceiros</option>' + partners.map(partner => `<option value="${esc(partner.id)}">${esc(partner.name)}</option>`).join('');
+    select.innerHTML = '<option value="">Todos os escritórios</option>' + partners.map(partner => `<option value="${esc(partner.id)}">${esc(partner.name)}</option>`).join('');
     select.value = quartilPartnerFilter;
   } else if (result) {
     select.setAttribute('aria-label', 'Selecionar empresa');

@@ -69,6 +69,18 @@ test('lê planilha Excel mensal de consultores', async () => {
   assert.equal(parsed.snapshot.consultants[1].tenure, 'new');
 });
 
+test('preserva ponto decimal em resultados de fórmula da receita', async () => {
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet('Set_26');
+  sheet.addRow(['Consultor', 'M de CASA', 'FISICOS MÓVEL', 'RECEITA MÓVEL', 'FISICOS FTTH', 'RECEITA FTTH', 'RECEITA TELECOM TT', 'Parceiro']);
+  sheet.addRow(['Naiyara', 'ACIMA DE M3', 6, 0, 2, 0, { formula: '=1+1', result: 369.927 }, 'BRASILIA']);
+  sheet.addRow(['Marcus Vinicius', 'ACIMA DE M3', 6, 0, 0, 0, { formula: '=1+1', result: 316.947 }, 'BRASILIA']);
+  const parsed = await parseQuartilWorkbook(await workbook.xlsx.writeBuffer(), 'receita-formula.xlsx');
+  const values = Object.fromEntries(parsed.snapshot.consultants.map(consultant => [consultant.name, consultant.values.receita]));
+  assert.equal(values.Naiyara, 369.927);
+  assert.equal(values['Marcus Vinicius'], 316.947);
+});
+
 test('calcula evolucao contra 3 e 6 competencias anteriores', () => {
   const consultant = {
     tenure: 'experienced',

@@ -442,6 +442,149 @@ body { background-image: radial-gradient(circle at 8% 0%, #4b7180 0, transparent
 .quartil-insight-alert { background: linear-gradient(145deg, #5a4435, #3b3433); border-color: #9c6848; }
 .quartil-insight-alert::before { background: #ff9d55; }
 .quartil-insight-alert .quartil-insight-icon { background: #704d38; border-color: #b8794e; color: #ffd1aa; }
+
+/* Filtros de indicador: cada projeto tem um acento próprio, mantendo a base premium. */
+.quartil-toolbar-compact .quartil-metric-switcher {
+  background: #1a2a35;
+  border: 1px solid #344f5a;
+  box-shadow: inset 0 1px 2px #07131b55;
+}
+.quartil-toolbar-compact .quartil-metric-switcher button {
+  position: relative;
+  min-width: 112px;
+  border: 1px solid transparent;
+  color: #a8bac4;
+}
+.quartil-toolbar-compact .quartil-metric-switcher button::before {
+  content: '';
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 4px;
+  height: 2px;
+  border-radius: 2px;
+  background: currentColor;
+  opacity: .35;
+  transform: scaleX(.45);
+  transition: opacity .18s ease, transform .18s ease;
+}
+.quartil-toolbar-compact .quartil-metric-switcher button:hover,
+.quartil-toolbar-compact .quartil-metric-switcher button:focus-visible {
+  color: #eef7fa;
+  background: #263d49;
+  border-color: #52717f;
+}
+.quartil-toolbar-compact .quartil-metric-switcher button:hover::before,
+.quartil-toolbar-compact .quartil-metric-switcher button:focus-visible::before,
+.quartil-toolbar-compact .quartil-metric-switcher button.active::before {
+  opacity: 1;
+  transform: scaleX(1);
+}
+.quartil-toolbar-compact .quartil-metric-switcher button.active {
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 8px 18px #07131b55, inset 0 1px 0 #ffffff22;
+}
+.quartil-toolbar-compact .quartil-metric-switcher .quartil-metric-receita {
+  --metric-color: #8e7cf0;
+  --metric-dark: #5147a7;
+}
+.quartil-toolbar-compact .quartil-metric-switcher .quartil-metric-movel {
+  --metric-color: #55c4d8;
+  --metric-dark: #277d93;
+}
+.quartil-toolbar-compact .quartil-metric-switcher .quartil-metric-ftth {
+  --metric-color: #51c995;
+  --metric-dark: #287f61;
+}
+.quartil-toolbar-compact .quartil-metric-switcher .quartil-metric-receita { color: #bcb3ff; }
+.quartil-toolbar-compact .quartil-metric-switcher .quartil-metric-movel { color: #7dd9e8; }
+.quartil-toolbar-compact .quartil-metric-switcher .quartil-metric-ftth { color: #83e4b7; }
+.quartil-toolbar-compact .quartil-metric-switcher button:hover,
+.quartil-toolbar-compact .quartil-metric-switcher button:focus-visible {
+  color: var(--metric-color);
+  border-color: color-mix(in srgb, var(--metric-color) 42%, transparent);
+}
+.quartil-toolbar-compact .quartil-metric-switcher button.active {
+  background: linear-gradient(145deg, var(--metric-dark), color-mix(in srgb, var(--metric-dark) 75%, #172b34));
+  color: #fff;
+}
+.quartil-toolbar-compact .quartil-metric-switcher button.active::before {
+  background: var(--metric-color);
+}
+
+/* Filtros do ranking: apenas o critério ativo recebe preenchimento. */
+.quartil-ranking-tools .quartil-ranking-mode {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid #344f5a;
+  border-radius: 8px;
+  background: #1a2a35;
+}
+.quartil-ranking-tools .quartil-tenure-filters {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid #344f5a;
+  border-radius: 8px;
+  background: #1a2a35;
+}
+.quartil-ranking-tools .quartil-ranking-mode-button,
+.quartil-ranking-tools .quartil-tenure-button {
+  min-height: 36px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: #a8bac4;
+  box-shadow: none;
+}
+.quartil-ranking-tools .quartil-ranking-mode-button:hover,
+.quartil-ranking-tools .quartil-ranking-mode-button:focus-visible,
+.quartil-ranking-tools .quartil-tenure-button:hover,
+.quartil-ranking-tools .quartil-tenure-button:focus-visible {
+  border-color: #52717f;
+  background: #263d49;
+  color: #eef7fa;
+}
+.quartil-ranking-tools .quartil-ranking-mode-button.active,
+.quartil-ranking-tools .quartil-tenure-button.active {
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 6px 14px #07131b44, inset 0 1px 0 #ffffff20;
+}
+.quartil-ranking-tools .quartil-ranking-mode-button.quartil-ranking-mode-score.active {
+  background: linear-gradient(145deg, #5147a7, #3b367e);
+}
+.quartil-ranking-tools .quartil-ranking-mode-button.quartil-ranking-mode-receita.active {
+  background: linear-gradient(145deg, #5147a7, #3b367e);
+}
+.quartil-ranking-tools .quartil-ranking-mode-button.quartil-ranking-mode-movel.active {
+  background: linear-gradient(145deg, #277d93, #205d70);
+}
+.quartil-ranking-tools .quartil-ranking-mode-button.quartil-ranking-mode-ftth.active {
+  background: linear-gradient(145deg, #287f61, #205b48);
+}
+.quartil-ranking-tools .quartil-tenure-button.quartil-tenure-experienced {
+  color: #7dd9e8;
+}
+.quartil-ranking-tools .quartil-tenure-button.quartil-tenure-new {
+  color: #f5d878;
+}
+.quartil-ranking-tools .quartil-tenure-button.quartil-tenure-experienced.active {
+  background: linear-gradient(145deg, #277d93, #205d70);
+}
+.quartil-ranking-tools .quartil-tenure-button.quartil-tenure-new.active {
+  background: linear-gradient(145deg, #8c6f28, #66521f);
+}
+@media (max-width: 700px) {
+  .quartil-ranking-tools .quartil-tenure-filters {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+  .quartil-ranking-tools .quartil-tenure-button { width: 100%; }
+}
 .quartil-insight-alert .quartil-insight-heading { color: #ffc18e; }
 .quartil-alert-tone { border-color: #9c6848; }
 @media (min-width: 801px) {

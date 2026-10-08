@@ -88,8 +88,12 @@ const monthFor = name => {
   return String(year) + '-' + String(MONTHS[match[1]]).padStart(2, '0');
 };
 const numberValue = value => {
+  if (value && typeof value === 'object' && typeof value.result === 'number') return value.result;
   const text = textOf(value).replace(/\s/g, '');
   if (!text) return null;
+  if (value && typeof value === 'object' && 'formula' in value && typeof value.result === 'string' && /^-?\d+\.\d{3}$/.test(text)) {
+    return Number(text);
+  }
   const numeric = typeof value === 'number' ? value : numberFromPortuguese(text.replace(/[^\d,.-]/g, ''));
   return Number.isFinite(numeric) ? numeric : null;
 };
