@@ -92,7 +92,7 @@ export function registerLibrary(app, { dataDir, load, save, view, locked, root }
           if (parsed.records.some(r => ['carteira', 'fixa', 'movel'].some(d => d !== identified.domain && key(r.indicator).replaceAll(' ', '').includes(`QSC${d.toUpperCase()}`)))) throw failure(`${file.originalname}: há mais de um tipo QSC na coluna INDICADOR.`);
           const normalized = normalizeInput(parsed);
           const slots = new Set(normalized.records.map(slot));
-          if ([...slots].some(s => occupied.has(s))) throw failure('Há dois arquivos para o mesmo parceiro, QSC, ano e semestre. Envie somente a versão mais recente de cada base.');
+          if ([...slots].some(s => occupied.has(s))) throw failure('Há dois arquivos para o mesmo escritório, QSC, ano e semestre. Envie somente a versão mais recente de cada base.');
           slots.forEach(s => occupied.add(s));
           // Avoid spreading large CSV arrays into function arguments.
           incoming.records = incoming.records.concat(normalized.records);

@@ -50,7 +50,7 @@ export function identifyCsv(buffer, name) {
   const domain = contentDomains[0] ?? nameDomains[0];
   if (!domain) throw new Error('Não foi possível identificar o QSC. Use Carteira, Fixa ou Movel no nome, ou informe o tipo na coluna INDICADOR.');
   const partners = [...new Set(rows.map(row => row[headers.indexOf('GRUPO REDE TERMO')]?.trim()).filter(Boolean))];
-  if (!partners.length) throw new Error('Nenhum parceiro identificado em GRUPO_REDE_TERMO.');
+  if (!partners.length) throw new Error('Nenhum escritório identificado em GRUPO_REDE_TERMO.');
   return { ...info, domain, partners, semester: semesterFromFileName(name), clientColumn: info.headers.find(h => key(h) === 'DOCUMENTO CLIENTE') ?? null };
 }
 export function ingest(files) {

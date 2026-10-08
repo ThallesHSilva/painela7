@@ -101,7 +101,7 @@ function renderQuartil() {
   const tenureFilters = [['experienced', 'Acima de 3 meses'], ['new', 'Abaixo de 3 meses']].map(([value, label]) => `<button class="quartil-tenure-button ${quartilTenureFilter === value ? 'active' : ''}" data-tenure="${value}" aria-pressed="${quartilTenureFilter === value}">${label}</button>`).join('');
   const rankingFilters = [['score', 'Score'], ['metric', metricLabels[selectedQuartilMetric]]].map(([value, label]) => `<button class="quartil-ranking-mode-button ${quartilRankingMode === value ? 'active' : ''}" data-ranking-mode="${value}" aria-pressed="${quartilRankingMode === value}">${label}</button>`).join('');
   const activeFilters = [
-    quartilPartnerFilter ? `<button class="quartil-filter-chip" data-partner="${esc(quartilPartnerFilter)}">Parceiro: ${esc(data.partners.find(partner => partner.id === quartilPartnerFilter)?.name || quartilPartnerFilter)} <span aria-hidden="true">×</span></button>` : '',
+    quartilPartnerFilter ? `<button class="quartil-filter-chip" data-partner="${esc(quartilPartnerFilter)}">Escritório: ${esc(data.partners.find(partner => partner.id === quartilPartnerFilter)?.name || quartilPartnerFilter)} <span aria-hidden="true">×</span></button>` : '',
     selectedQuartilBand ? `<button class="quartil-filter-chip" data-quartile="${selectedQuartilBand}">Faixa Q${selectedQuartilBand} · ${metricLabels[selectedQuartilMetric]} <span aria-hidden="true">×</span></button>` : '',
     quartilTenureFilter ? `<button class="quartil-filter-chip" data-tenure="${quartilTenureFilter}">${tenureLabel(quartilTenureFilter)} <span aria-hidden="true">×</span></button>` : '',
     quartilEvolutionFilter ? `<button class="quartil-filter-chip" id="quartil-clear-filter">${quartilEvolutionFilter} <span aria-hidden="true">×</span></button>` : ''
@@ -112,6 +112,15 @@ function renderQuartil() {
     + `<section class="quartil-section"><div class="quartil-section-head"><div><span class="quartil-eyebrow">Distribuição atual · ${metricLabels[selectedQuartilMetric]}</span><h3>Como a operação está distribuída?</h3></div><span class="quartil-source">Fonte: ${esc(data.source.report)}</span></div><div class="quartil-distribution"><div class="quartil-band ${selectedQuartilBand ? 'has-selection' : ''}">${dist}</div><div class="quartil-legend">${legend}</div><p class="quartil-helper">Clique em uma faixa para filtrar o ranking individual.</p></div><div class="table-wrap quartil-partner-wrap"><table class="quartil-partner-table"><thead><tr><th>Parceiro</th><th>Consultores</th><th>Distribuição</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th><th>Q5</th></tr></thead><tbody>${partnerRows}</tbody></table></div></section>`
     + `<section class="quartil-section"><div class="quartil-section-head"><div><span class="quartil-eyebrow">Movimento da base · ${metricLabels[selectedQuartilMetric]}</span><h3>Evolução por janela</h3></div><span class="quartil-helper">Comparação contra a competência anterior disponível</span></div><div class="quartil-evolution"><div class="quartil-evolution-window"><h4>Últimos 3 meses</h4><div class="quartil-stat-grid">${evolutionCards(3)}</div></div><div class="quartil-evolution-window"><h4>Últimos 6 meses</h4><div class="quartil-stat-grid">${evolutionCards(6)}</div></div></div></section>`
     + `<section class="quartil-section quartil-ranking"><div class="quartil-section-head"><div><span class="quartil-eyebrow">Ranking geral</span><h3>Performance individual</h3></div><div class="quartil-ranking-tools"><div class="quartil-tenure-filters" role="group" aria-label="Tempo de casa">${tenureFilters}</div><label class="quartil-search"><span aria-hidden="true">⌕</span><input id="quartil-search" type="search" placeholder="Buscar consultor ou parceiro" aria-label="Buscar consultor ou parceiro" value="${esc(quartilSearch)}"></label></div></div><div class="quartil-results-bar"><span class="quartil-results-count"><b>${rows.length}</b> de ${data.consultants.length} consultores</span>${activeFilters ? `<div class="quartil-active-filters"><span>Filtros ativos</span>${activeFilters}</div>` : ''}</div><div class="table-wrap"><table class="quartil-table"><thead><tr><th>Posição e consultor</th><th>Pontos</th><th>Tempo de casa</th>${QUARTIL_METRICS.map(metric => `<th class="${metric === selectedQuartilMetric ? 'is-metric' : ''}">${metricLabels[metric]}</th>`).join('')}<th class="is-metric">${metricLabels[selectedQuartilMetric]} atual</th><th>Evolução 3 meses</th><th>Evolução 6 meses</th></tr></thead><tbody>${rankingRows}</tbody></table></div><p class="small quartil-source">Exibindo ${rows.length} de ${data.consultants.length} consultores${data.warnings.length ? ` · ${data.warnings.length} avisos de qualidade` : ''}.</p></section>`;
+  const officeMeta = [...target.querySelectorAll('.quartil-meta dt')].find(node => node.textContent === 'Parceiros');
+  if (officeMeta) officeMeta.textContent = 'Escritórios';
+  const officeTableHead = target.querySelector('.quartil-partner-table thead th');
+  if (officeTableHead) officeTableHead.textContent = 'Escritório';
+  const officeSearch = target.querySelector('#quartil-search');
+  if (officeSearch) {
+    officeSearch.placeholder = 'Buscar consultor ou escritório';
+    officeSearch.setAttribute('aria-label', 'Buscar consultor ou escritório');
+  }
   const rulesTableNode = target.querySelector('.quartil-rules-table');
   if (rulesTableNode) {
     rulesTableNode.tHead?.rows[0]?.deleteCell(0);
@@ -186,7 +195,9 @@ const importHeading = $('#import-dialog h2');
 if (importHeading) importHeading.textContent = 'Importar bases';
 $('#files').required = false;
 const importDescription = document.querySelector('#import-dialog .dialog-heading + p');
-if (importDescription) importDescription.textContent = 'Envie as bases QSC em CSV e, quando necessário, uma planilha Excel de quartil com faixas Q1–Q5 ou abas mensais de consultores. Cada arquivo atualiza somente a base correspondente.';
+if (importDescription) importDescription.textContent = 'Envie as bases QSC em CSV e, quando necessário, uma planilha Excel de quartil com faixas Q1–Q5 ou abas mensais de consultores. Cada atualização usa a base correspondente do escritório.';
+const importNote = $('#import-dialog .note');
+if (importNote) importNote.textContent = importNote.textContent.replace(/^Parceiro:/, 'Escritório:');
 const quartilDrop = document.createElement('label');
 quartilDrop.className = 'file-drop quartil-file-drop';
 quartilDrop.innerHTML = '<span class="upload-symbol">▦</span><strong>Selecionar planilha de quartil</strong><span>Arquivo Excel .xlsx · até 50 MB</span><input id="quartil-file" type="file" accept=".xlsx">';
@@ -215,6 +226,7 @@ $('#files').onchange = async () => {
     const inspected = await api('/api/inspect', { method: 'POST', body });
     if (request !== inspectionRequest) return;
     $('#file-options').innerHTML = inspected.map(f => `<div class="file-option"><strong>${esc(f.name)}</strong>${f.error ? `<p class="error">${esc(f.error)}</p>` : `<p><span class="badge good">QSC ${labels[f.domain]}</span> · ${f.semester ? (f.semester === 'h1' ? '1º semestre' : '2º semestre') : 'Período identificado pelas competências'}</p><p>Parceiro identificado na amostra: ${esc(f.partners.join(', '))}</p>`}</div>`).join('');
+    document.querySelectorAll('#file-options .file-option p:last-child').forEach(node => { node.textContent = node.textContent.replace(/^Parceiro identificado/, 'Escritório identificado'); });
     const failed = inspected.some(f => f.error);
     updateImportButton(failed);
     $('#import-status').textContent = failed ? 'Confira os arquivos não reconhecidos antes de enviar.' : 'Arquivos identificados. Prontos para armazenar e atualizar a visão QSC.';
@@ -285,7 +297,7 @@ function renderTopFilter() {
   if (activeExecutiveSection === 'quartil') {
     const partners = quartilSnapshot?.partners ?? [];
     if (quartilPartnerFilter && !partners.some(partner => partner.id === quartilPartnerFilter)) quartilPartnerFilter = '';
-    select.setAttribute('aria-label', 'Filtrar parceiro do Quartil');
+    select.setAttribute('aria-label', 'Filtrar escritório do Quartil');
     select.innerHTML = '<option value="">Todos os parceiros</option>' + partners.map(partner => `<option value="${esc(partner.id)}">${esc(partner.name)}</option>`).join('');
     select.value = quartilPartnerFilter;
   } else if (result) {
