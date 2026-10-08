@@ -89,6 +89,22 @@ export function quartilesFor(consultant, point = consultant, rules = QUARTIL_RUL
   return Object.fromEntries(QUARTIL_METRICS.map(metric => [metric, quartileFor(consultant.tenure, metric, point?.values?.[metric], rules)]));
 }
 
+export function quartilComparisons(consultant, rules = QUARTIL_RULES) {
+  const history = consultant?.history?.length ? consultant.history : [consultant];
+  const latest = history.at(-1);
+  return Object.fromEntries([3, 6].map(months => {
+    const prior = history.length > months ? history.at(-1 - months) : null;
+    const latestQuartiles = latest?.quartiles ?? quartilesFor(consultant, latest, rules);
+    const priorQuartiles = prior?.quartiles ?? quartilesFor(consultant, prior, rules);
+    const changes = Object.fromEntries(QUARTIL_METRICS.map(metric => {
+      const current = latestQuartiles?.[metric];
+      const previous = priorQuartiles?.[metric];
+      return [metric, Number.isFinite(current) && Number.isFinite(previous) ? previous - current : null];
+    }));
+    return [months, { from: prior?.month ?? null, to: latest?.month ?? null, changes }];
+  }));
+}
+
 export function quartilScore(consultant) {
   return QUARTIL_METRICS.reduce((sum, metric) => sum + ({ 1: 5, 2: 4, 3: 3, 4: 2, 5: 1 }[consultant?.quartiles?.[metric]] || 0), 0);
 }

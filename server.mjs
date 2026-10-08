@@ -14,7 +14,7 @@ import { exportRows, toCsv, toXlsx } from './exports/treatments.mjs';
 import { makePdf } from './reports/pdf.mjs';
 import { makeHtml, reportStyleHash } from './reports/html.mjs';
 import { generatePlan } from './reports/ai.mjs';
-import { QUARTIL_RULES, quartilesFor } from './frontend/quartil-rules.js';
+import { QUARTIL_RULES, quartilComparisons, quartilesFor } from './frontend/quartil-rules.js';
 import { parseQuartilWorkbook } from './ingestion/quartil.mjs';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
@@ -125,6 +125,8 @@ export function createApp({ dataDir = path.join(root, 'data') } = {}) {
       const snapshot = JSON.parse(await fs.readFile(path.join(dataDir, 'quartil.snapshot.json'), 'utf8'));
       let rules = null;
       try { rules = JSON.parse(await fs.readFile(path.join(dataDir, 'quartil.rules.json'), 'utf8')); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+      const activeRules = rules?.rules ?? QUARTIL_RULES;
+      for (const consultant of snapshot.consultants ?? []) consultant.comparisons = quartilComparisons(consultant, activeRules);
       const requested = new Set(req.query.partner ? [].concat(req.query.partner).map(partnerKey) : []);
       const consultants = requested.size ? snapshot.consultants.filter(item => requested.has(partnerKey(item.partnerId)) || requested.has(partnerKey(item.partnerName))) : snapshot.consultants;
       res.json({ ...snapshot, consultants, rules: rules?.rules ?? null, rulesSource: rules?.source ?? null });
@@ -158,6 +160,7 @@ export function createApp({ dataDir = path.join(root, 'data') } = {}) {
           for (const point of consultant.history ?? []) point.quartiles = quartilesFor(consultant, point, activeRules);
           const latest = consultant.history?.at(-1) ?? consultant;
           consultant.quartiles = quartilesFor(consultant, latest, activeRules);
+          consultant.comparisons = quartilComparisons(consultant, activeRules);
         }
         snapshot.source = parsed.source;
         await fs.writeFile(path.join(dataDir, 'quartil.snapshot.json'), JSON.stringify(snapshot, null, 2) + '\n', 'utf8');

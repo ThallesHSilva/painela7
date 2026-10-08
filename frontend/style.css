@@ -93,6 +93,11 @@ body{background:#f4eff8;background-image:radial-gradient(circle at 12% 0%,#eadcf
 .quartil-history-table td:first-child, .quartil-history-table th:first-child { text-align: left; min-width: 120px; }
 .quartil-history-table td small { display: block; margin-top: 4px; color: var(--muted); font-size: 9px; }
 .quartil-history-table .quartil-q { min-width: 35px; padding: 3px 6px; }
+.quartil-toolbar-compact { display: flex; justify-content: center; padding: 10px; margin: 16px 0; background: linear-gradient(135deg, #fff, #f8f2fc); border-color: #e1d3ea; box-shadow: 0 10px 28px rgba(76,35,103,.08); }
+.quartil-toolbar-compact .quartil-metric-switcher { margin: 0; padding: 4px; background: #eee5f5; border: 1px solid #e1d3ea; border-radius: 12px; box-shadow: inset 0 1px 2px rgba(76,35,103,.06); }
+.quartil-toolbar-compact .quartil-metric-switcher button { min-width: 108px; padding: 10px 20px; border: 1px solid transparent; border-radius: 8px; color: #725d7d; font-size: 12px; transition: .18s ease; }
+.quartil-toolbar-compact .quartil-metric-switcher button:hover { color: #4c2367; background: rgba(255,255,255,.72); }
+.quartil-toolbar-compact .quartil-metric-switcher button.active { background: #642d87; color: #fff; border-color: #642d87; box-shadow: 0 5px 12px rgba(100,45,135,.22); }
 @media (max-width: 700px) {
   .quartil-detail { padding: 18px 14px; }
   .quartil-analysis-grid { grid-template-columns: 1fr; }

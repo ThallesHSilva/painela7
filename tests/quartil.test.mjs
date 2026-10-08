@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import ExcelJS from 'exceljs';
-import { alertFor, quartileFor, rankQuartilConsultants } from '../frontend/quartil-rules.js';
+import { alertFor, quartilComparisons, quartileFor, rankQuartilConsultants } from '../frontend/quartil-rules.js';
 import { parseQuartilWorkbook } from '../ingestion/quartil.mjs';
 
 test('aplica as faixas da planilha sem sobreposição', () => {
@@ -67,6 +67,26 @@ test('lê planilha Excel mensal de consultores', async () => {
   assert.equal(parsed.snapshot.consultants.length, 2);
   assert.equal(parsed.snapshot.consultants[0].values.receita, 500);
   assert.equal(parsed.snapshot.consultants[1].tenure, 'new');
+});
+
+test('calcula evolucao contra 3 e 6 competencias anteriores', () => {
+  const consultant = {
+    tenure: 'experienced',
+    history: [
+      { month: '2026-01', quartiles: { receita: 5, movel: 3, ftth: 2 } },
+      { month: '2026-02', quartiles: { receita: 4, movel: 3, ftth: 2 } },
+      { month: '2026-03', quartiles: { receita: 4, movel: 2, ftth: 2 } },
+      { month: '2026-04', quartiles: { receita: 3, movel: 2, ftth: 1 } },
+      { month: '2026-05', quartiles: { receita: 2, movel: 2, ftth: 1 } },
+      { month: '2026-06', quartiles: { receita: 1, movel: 1, ftth: 1 } },
+      { month: '2026-07', quartiles: { receita: 2, movel: 1, ftth: 1 } },
+    ],
+  };
+  const comparisons = quartilComparisons(consultant);
+  assert.equal(comparisons[3].from, '2026-04');
+  assert.deepEqual(comparisons[3].changes, { receita: 1, movel: 1, ftth: 0 });
+  assert.equal(comparisons[6].from, '2026-01');
+  assert.deepEqual(comparisons[6].changes, { receita: 3, movel: 2, ftth: 1 });
 });
 
 test('vincula o consultor ao parceiro da ultima competencia', async () => {
