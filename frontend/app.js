@@ -1,10 +1,10 @@
 import { renderUnified } from './unified.js';
-import { alertFor, quartilScore, rankQuartilConsultants, QUARTIL_LABELS, QUARTIL_METRICS, QUARTIL_RULES } from './quartil-rules.js';
+import { alertFor, quartilScore, rankQuartilConsultants, setQuartilRules, QUARTIL_LABELS, QUARTIL_METRICS, QUARTIL_RULES } from './quartil-rules.js';
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const fmt = n => n === null || n === undefined ? '—' : new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 }).format(n);
 const labels = { carteira: 'Carteira', fixa: 'Fixa', movel: 'Móvel' };
-let result, selectedCompany, activeTab = 'indicators', reviewing, config, selectedFiles = [], page = 0, treatmentRequest = 0, searchTimer;
+let result, selectedCompany, activeTab = 'indicators', reviewing, config, selectedFiles = [], selectedQuartilFile = null, page = 0, treatmentRequest = 0, searchTimer;
 let quartilSnapshot = null, selectedQuartilMetric = 'receita', quartilRankingMode = 'score', quartilSearch = '', quartilEvolutionFilter = null, selectedQuartilBand = null, quartilTenureFilter = null, expandedQuartilConsultant = null;
 function notice(message, error = false) { $('#notice').hidden = !message; $('#notice').textContent = message; $('#notice').className = error ? 'error' : ''; }
 async function api(url, options) { const response = await fetch(url, options); const data = await response.json(); if (!response.ok) { const extra = (data.ocorrencias ?? []).slice(0, 6).map(x => x.mensagem).join(' · '); throw new Error(data.error + (extra ? ` ${extra}` : '')); } return data; }
@@ -32,6 +32,7 @@ async function loadQuartil() {
   target.innerHTML = '<p class="note">Carregando a base de quartil…</p>';
   try {
     quartilSnapshot = await api('/api/quartil');
+    if (quartilSnapshot.rules) setQuartilRules(quartilSnapshot.rules);
     renderQuartil();
   } catch (error) { target.innerHTML = `<div class="module-empty"><strong>Base de quartil indisponível</strong><p>${esc(error.message)}</p></div>`; }
 }
@@ -175,10 +176,23 @@ for (const id of ['open-import', 'empty-import', 'nav-import']) { const node = $
 $('#nav-overview').onclick = () => { showExecutiveSection('qsc'); activeTab = 'indicators'; renderTabs(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
 document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => $(`#${b.dataset.close}`).close());
 let inspectionRequest = 0;
+const importHeading = $('#import-dialog h2');
+if (importHeading) importHeading.textContent = 'Importar bases';
+const importDescription = document.querySelector('#import-dialog .dialog-heading + p');
+if (importDescription) importDescription.textContent = 'Envie as bases QSC em CSV e, quando necessário, a planilha Excel com as faixas de quartil. Cada arquivo atualiza somente a base correspondente.';
+const quartilDrop = document.createElement('label');
+quartilDrop.className = 'file-drop quartil-file-drop';
+quartilDrop.innerHTML = '<span class="upload-symbol">▦</span><strong>Selecionar planilha de quartil</strong><span>Arquivo Excel .xlsx · até 50 MB</span><input id="quartil-file" type="file" accept=".xlsx">';
+$('#import-status').before(quartilDrop);
+const quartilStatus = document.createElement('p');
+quartilStatus.id = 'quartil-file-status';
+quartilStatus.className = 'small';
+quartilDrop.after(quartilStatus);
+const updateImportButton = failed => { $('#import-submit').disabled = Boolean(failed || (!selectedFiles.length && !selectedQuartilFile)); };
 $('#files').onchange = async () => {
   const request = ++inspectionRequest;
   selectedFiles = [...$('#files').files];
-  $('#import-submit').disabled = true;
+  updateImportButton(true);
   $('#import-status').textContent = 'Identificando os arquivos…';
   $('#file-options').innerHTML = '';
   try {
@@ -195,20 +209,41 @@ $('#files').onchange = async () => {
     if (request !== inspectionRequest) return;
     $('#file-options').innerHTML = inspected.map(f => `<div class="file-option"><strong>${esc(f.name)}</strong>${f.error ? `<p class="error">${esc(f.error)}</p>` : `<p><span class="badge good">QSC ${labels[f.domain]}</span> · ${f.semester ? (f.semester === 'h1' ? '1º semestre' : '2º semestre') : 'Período identificado pelas competências'}</p><p>Parceiro identificado na amostra: ${esc(f.partners.join(', '))}</p>`}</div>`).join('');
     const failed = inspected.some(f => f.error);
-    $('#import-submit').disabled = failed;
+    updateImportButton(failed);
     $('#import-status').textContent = failed ? 'Confira os arquivos não reconhecidos antes de enviar.' : 'Arquivos identificados. Prontos para armazenar e atualizar a visão QSC.';
   } catch (e) { if (request === inspectionRequest) $('#import-status').textContent = e.message; }
 };
+$('#quartil-file').onchange = () => {
+  selectedQuartilFile = $('#quartil-file').files[0] ?? null;
+  const status = $('#quartil-file-status');
+  if (!selectedQuartilFile) { status.textContent = ''; updateImportButton(false); return; }
+  if (selectedQuartilFile.size > 50 * 1024 * 1024) {
+    selectedQuartilFile = null;
+    $('#quartil-file').value = '';
+    status.textContent = 'A planilha deve ter até 50 MB.';
+    updateImportButton(true);
+    return;
+  }
+  status.textContent = 'Planilha selecionada: ' + selectedQuartilFile.name + '. As regras serão aplicadas à base de quartil.';
+  updateImportButton(false);
+};
 $('#import-form').onsubmit = event => { event.preventDefault(); busy($('#import-submit'), async () => {
   $('#files').disabled = true;
-  $('#import-status').textContent = 'Armazenando as bases e calculando os resultados. Aguarde a conclusão.';
-  notice('Atualizando a base consolidada QSC…');
+  $('#import-status').textContent = 'Armazenando os arquivos e atualizando as bases. Aguarde a conclusão.';
+  notice('Atualizando as bases…');
   try {
-    const body = new FormData(); selectedFiles.forEach(f => body.append('files', f));
-    const updated = await api('/api/library/import', { method: 'POST', body });
-    result = updated;
-    if (!result.empresas.some(e => e.empresa_id === selectedCompany)) selectedCompany = result.empresas[0]?.empresa_id;
-    $('#import-dialog').close(); render(); notice('Bases armazenadas e visão QSC atualizada. Os demais parceiros e QSCs foram preservados.');
+    if (selectedFiles.length) {
+      const body = new FormData(); selectedFiles.forEach(f => body.append('files', f));
+      const updated = await api('/api/library/import', { method: 'POST', body });
+      result = updated;
+      if (!result.empresas.some(e => e.empresa_id === selectedCompany)) selectedCompany = result.empresas[0]?.empresa_id;
+    }
+    if (selectedQuartilFile) {
+      const quartilBody = new FormData(); quartilBody.append('file', selectedQuartilFile);
+      await api('/api/quartil/import', { method: 'POST', body: quartilBody });
+      quartilSnapshot = null;
+    }
+    $('#import-dialog').close(); render(); if (selectedQuartilFile && !$('#quartil-live').hidden) await loadQuartil(); notice('Bases armazenadas e visão QSC atualizada. Os demais parceiros e QSCs foram preservados.');
     $('#import-status').textContent = 'Atualização concluída.';
   } catch (error) { $('#import-status').textContent = error.message; throw error; }
   finally { $('#files').disabled = false; }

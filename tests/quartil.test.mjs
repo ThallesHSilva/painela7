@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import ExcelJS from 'exceljs';
 import { alertFor, quartileFor, rankQuartilConsultants } from '../frontend/quartil-rules.js';
+import { parseQuartilWorkbook } from '../ingestion/quartil.mjs';
 
 test('aplica as faixas da planilha sem sobreposição', () => {
   assert.equal(quartileFor('experienced', 'receita', 2250), 2);
@@ -33,4 +35,21 @@ test('ranking por score e por métrica usam critérios diferentes', () => {
   ];
   assert.deepEqual(rankQuartilConsultants(consultants, 'score', 'receita').map(row => row.name), ['Score melhor', 'Sem receita', 'Receita maior']);
   assert.deepEqual(rankQuartilConsultants(consultants, 'metric', 'receita').map(row => row.name), ['Receita maior', 'Score melhor', 'Sem receita']);
+});
+
+test('lê planilha Excel de faixas de quartil', async () => {
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet('Faixas');
+  sheet.addRow(['Tempo de casa', 'Indicador', 'Q1', 'Q2', 'Q3', 'Q4', 'Q5']);
+  sheet.addRow(['Acima de 3 meses', 'Receita', 'Acima de R$ 3000', 'R$ 2001 a R$ 3000', 'R$ 1001 a R$ 2000', 'R$ 500 a R$ 1000', 'Abaixo de R$ 500']);
+  sheet.addRow(['', 'Móvel', 'Acima de 25', '16 a 25', '11 a 15', '6 a 10', '0 a 5']);
+  sheet.addRow(['', 'FTTH', 'Acima de 10', '6 a 10', '3 a 5', '1 a 2', '0']);
+  sheet.addRow(['Abaixo de 3 meses', 'Receita', 'R$ 500 ou mais', 'R$ 251 a R$ 499', 'R$ 101 a R$ 250', 'Acima de 0 até R$ 100', '0']);
+  sheet.addRow(['', 'Móvel', 'Acima de 15', '11 a 15', '6 a 10', 'Acima de 0 até 5', '0']);
+  sheet.addRow(['', 'FTTH', 'Acima de 10', '6 a 9', '3 a 5', '2', '0']);
+  const buffer = await workbook.xlsx.writeBuffer();
+  const parsed = await parseQuartilWorkbook(buffer, 'faixas.xlsx');
+  assert.equal(parsed.source.report, 'faixas.xlsx');
+  assert.equal(parsed.rules.experienced.metrics.receita[0].min, 3000);
+  assert.equal(parsed.rules.new.metrics.receita[4].max, 0);
 });

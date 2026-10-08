@@ -63,6 +63,13 @@ export const QUARTIL_RULES = {
   },
 };
 
+export function setQuartilRules(rules) {
+  const next = rules?.rules ?? rules;
+  for (const tenure of ['experienced', 'new']) {
+    if (next?.[tenure]?.metrics) QUARTIL_RULES[tenure] = next[tenure];
+  }
+}
+
 const matches = (value, range) => {
   if (value === null || value === undefined || !Number.isFinite(Number(value))) return false;
   const numeric = Number(value);
@@ -71,14 +78,15 @@ const matches = (value, range) => {
   return minOk && maxOk;
 };
 
-export function quartileFor(tenure, metric, value) {
-  const ranges = QUARTIL_RULES[tenure === 'new' ? 'new' : 'experienced']?.metrics?.[metric] ?? [];
+export function quartileFor(tenure, metric, value, rules = QUARTIL_RULES) {
+  const activeRules = rules?.rules ?? rules;
+  const ranges = activeRules[tenure === 'new' ? 'new' : 'experienced']?.metrics?.[metric] ?? [];
   const index = ranges.findIndex(range => matches(value, range));
   return index === -1 ? null : index + 1;
 }
 
-export function quartilesFor(consultant, point = consultant) {
-  return Object.fromEntries(QUARTIL_METRICS.map(metric => [metric, quartileFor(consultant.tenure, metric, point?.values?.[metric])]));
+export function quartilesFor(consultant, point = consultant, rules = QUARTIL_RULES) {
+  return Object.fromEntries(QUARTIL_METRICS.map(metric => [metric, quartileFor(consultant.tenure, metric, point?.values?.[metric], rules)]));
 }
 
 export function quartilScore(consultant) {

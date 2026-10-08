@@ -7,6 +7,7 @@ import { createApp } from '../server.mjs';
 import { demoFiles } from './fixtures.mjs';
 import { generatePlan } from '../reports/ai.mjs';
 import { serialize } from 'node:v8';
+import ExcelJS from 'exceljs';
 test('integração: upload, revisão, persistência, mudança de período e exportação isolada', async t => {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'qsc-test-'));
   const server = createApp({ dataDir: dir }).listen(0, '127.0.0.1'); await new Promise(resolve => server.once('listening', resolve));
@@ -63,4 +64,33 @@ test('IA: valida JSON, não envia CNPJs e trata falha sem inventar resposta', as
   assert.equal(plan.diagnostico, good.diagnostico); assert(!JSON.stringify(sent).includes('12345678000190')); assert.equal(sent.store, false);
   await assert.rejects(generatePlan(company, '2026-09', { apiKey: '', model: '' }), /Configure/);
   await assert.rejects(generatePlan(company, '2026-09', { apiKey: 'mock', model: 'mock', fetcher: async () => ({ ok: false, status: 429 }) }), /429/);
+});
+
+test('importa planilha Excel de quartil e recalcula o snapshot', async t => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'qsc-quartil-test-'));
+  await fs.writeFile(path.join(dir, 'quartil.snapshot.json'), JSON.stringify({
+    source: { report: 'old.xlsx' },
+    consultants: [{ id: 'C1', tenure: 'experienced', history: [{ values: { receita: 10, movel: 0, ftth: 0 } }] }],
+  }));
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet('Faixas');
+  sheet.addRow(['Tempo de casa', 'Indicador', 'Q1', 'Q2', 'Q3', 'Q4', 'Q5']);
+  for (const row of [
+    ['Acima de 3 meses', 'Receita', '> 3000', '2001 a 3000', '1001 a 2000', '501 a 1000', '0 a 500'],
+    ['', 'Móvel', '> 25', '16 a 25', '11 a 15', '6 a 10', '0 a 5'],
+    ['', 'FTTH', '> 10', '6 a 10', '3 a 5', '1 a 2', '0'],
+    ['Abaixo de 3 meses', 'Receita', '500 ou mais', '251 a 499', '101 a 250', '1 a 100', '0'],
+    ['', 'Móvel', '> 15', '11 a 15', '6 a 10', '1 a 5', '0'],
+    ['', 'FTTH', '> 10', '6 a 9', '3 a 5', '2', '0'],
+  ]) sheet.addRow(row);
+  const buffer = await workbook.xlsx.writeBuffer();
+  const server = createApp({ dataDir: dir }).listen(0, '127.0.0.1'); await new Promise(resolve => server.once('listening', resolve));
+  t.after(async () => { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); await fs.rm(dir, { recursive: true, force: true }); });
+  const base = 'http://127.0.0.1:' + server.address().port;
+  const form = new FormData(); form.append('file', new Blob([buffer]), 'faixas.xlsx');
+  const response = await fetch(base + '/api/quartil/import', { method: 'POST', body: form });
+  assert.equal(response.status, 201);
+  const snapshot = await (await fetch(base + '/api/quartil')).json();
+  assert.equal(snapshot.rules.experienced.metrics.receita[0].min, 3000);
+  assert.equal(snapshot.consultants[0].quartiles.receita, 5);
 });

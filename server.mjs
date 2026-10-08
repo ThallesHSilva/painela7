@@ -14,6 +14,8 @@ import { exportRows, toCsv, toXlsx } from './exports/treatments.mjs';
 import { makePdf } from './reports/pdf.mjs';
 import { makeHtml, reportStyleHash } from './reports/html.mjs';
 import { generatePlan } from './reports/ai.mjs';
+import { quartilesFor } from './frontend/quartil-rules.js';
+import { parseQuartilWorkbook } from './ingestion/quartil.mjs';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const runIndex = result => ({
@@ -39,6 +41,7 @@ export function createApp({ dataDir = path.join(root, 'data') } = {}) {
   });
   app.use(express.json({ limit: '1mb' }));
   const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 300 * 1024 * 1024, files: 20, fields: 5 }, fileFilter: (req, file, cb) => cb(null, /\.csv$/i.test(file.originalname)) });
+  const quartilUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024, files: 1 }, fileFilter: (req, file, cb) => cb(null, /\.xlsx$/i.test(file.originalname)) });
   const runPath = id => { if (!/^[a-f\d-]{36}$/.test(id)) throw Object.assign(new Error('Processamento inválido.'), { status: 404 }); return path.join(dataDir, id); };
   const load = async id => {
     const directory = runPath(id);
@@ -119,13 +122,37 @@ export function createApp({ dataDir = path.join(root, 'data') } = {}) {
   app.get('/api/quartil', async (req, res, next) => {
     try {
       const snapshot = JSON.parse(await fs.readFile(path.join(dataDir, 'quartil.snapshot.json'), 'utf8'));
+      let rules = null;
+      try { rules = JSON.parse(await fs.readFile(path.join(dataDir, 'quartil.rules.json'), 'utf8')); } catch (error) { if (error.code !== 'ENOENT') throw error; }
       const requested = new Set(req.query.partner ? [].concat(req.query.partner).map(String) : []);
       const consultants = requested.size ? snapshot.consultants.filter(item => requested.has(item.partnerId)) : snapshot.consultants;
-      res.json({ ...snapshot, consultants });
+      res.json({ ...snapshot, consultants, rules: rules?.rules ?? null, rulesSource: rules?.source ?? null });
     } catch (error) {
       if (error.code === 'ENOENT') return res.status(404).json({ error: 'Base de quartil ainda não foi importada.' });
       next(error);
     }
+  });
+  app.post('/api/quartil/import', quartilUpload.single('file'), async (req, res, next) => {
+    try {
+      if (!req.file) return res.status(400).json({ error: 'Selecione uma planilha Excel (.xlsx) de quartil.' });
+      const parsed = await parseQuartilWorkbook(req.file.buffer, req.file.originalname);
+      await fs.mkdir(dataDir, { recursive: true });
+      const rulesRecord = { rules: parsed.rules, source: parsed.source };
+      await fs.writeFile(path.join(dataDir, 'quartil.rules.json'), JSON.stringify(rulesRecord, null, 2) + '\n', 'utf8');
+      await fs.writeFile(path.join(dataDir, 'quartil.rules.xlsx'), req.file.buffer);
+      let snapshot = null;
+      try { snapshot = JSON.parse(await fs.readFile(path.join(dataDir, 'quartil.snapshot.json'), 'utf8')); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+      if (snapshot?.consultants) {
+        for (const consultant of snapshot.consultants) {
+          for (const point of consultant.history ?? []) point.quartiles = quartilesFor(consultant, point, parsed.rules);
+          const latest = consultant.history?.at(-1) ?? consultant;
+          consultant.quartiles = quartilesFor(consultant, latest, parsed.rules);
+        }
+        snapshot.source = parsed.source;
+        await fs.writeFile(path.join(dataDir, 'quartil.snapshot.json'), JSON.stringify(snapshot, null, 2) + '\n', 'utf8');
+      }
+      res.status(201).json({ ok: true, source: parsed.source, consultants: snapshot?.consultants?.length ?? 0, rules: parsed.rules });
+    } catch (error) { next(error); }
   });
   registerLibrary(app, { dataDir, load, save, view, locked, root });
   app.get('/api/schema', (req, res) => res.json(resultSchema));
