@@ -179,7 +179,7 @@ const importHeading = $('#import-dialog h2');
 if (importHeading) importHeading.textContent = 'Importar bases';
 $('#files').required = false;
 const importDescription = document.querySelector('#import-dialog .dialog-heading + p');
-if (importDescription) importDescription.textContent = 'Envie as bases QSC em CSV e, quando necessário, a planilha Excel com as faixas de quartil. Cada arquivo atualiza somente a base correspondente.';
+if (importDescription) importDescription.textContent = 'Envie as bases QSC em CSV e, quando necessário, uma planilha Excel de quartil com faixas Q1–Q5 ou abas mensais de consultores. Cada arquivo atualiza somente a base correspondente.';
 const quartilDrop = document.createElement('label');
 quartilDrop.className = 'file-drop quartil-file-drop';
 quartilDrop.innerHTML = '<span class="upload-symbol">▦</span><strong>Selecionar planilha de quartil</strong><span>Arquivo Excel .xlsx · até 50 MB</span><input id="quartil-file" type="file" accept=".xlsx">';
@@ -224,7 +224,7 @@ $('#quartil-file').onchange = () => {
     updateImportButton(true);
     return;
   }
-  status.textContent = 'Planilha selecionada: ' + selectedQuartilFile.name + '. As regras serão aplicadas à base de quartil.';
+  status.textContent = 'Planilha selecionada: ' + selectedQuartilFile.name + '. As faixas ou os dados mensais serão aplicados à base de quartil.';
   updateImportButton(false);
 };
 $('#import-form').onsubmit = event => { event.preventDefault(); busy($('#import-submit'), async () => {

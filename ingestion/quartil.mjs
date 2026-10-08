@@ -5,6 +5,7 @@ const METRICS = ['receita', 'movel', 'ftth'];
 
 const textOf = value => {
   if (value === null || value === undefined) return '';
+  if (typeof value === 'object' && value.result !== undefined) return textOf(value.result);
   if (typeof value === 'object' && value.text !== undefined) return String(value.text);
   if (typeof value === 'object' && Array.isArray(value.richText)) return value.richText.map(item => item.text ?? '').join('');
   return String(value);
@@ -79,6 +80,91 @@ function headerFor(worksheet) {
   return null;
 }
 
+const MONTHS = { jan: 1, fev: 2, mar: 3, abr: 4, mai: 5, jun: 6, jul: 7, ago: 8, set: 9, out: 10, nov: 11, dez: 12 };
+const monthFor = name => {
+  const match = normalize(name).match(/^(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)[_-](\d{2,4})$/);
+  if (!match) return null;
+  const year = Number(match[2].length === 2 ? '20' + match[2] : match[2]);
+  return String(year) + '-' + String(MONTHS[match[1]]).padStart(2, '0');
+};
+const numberValue = value => {
+  const text = textOf(value).replace(/\s/g, '');
+  if (!text) return null;
+  const numeric = typeof value === 'number' ? value : numberFromPortuguese(text.replace(/[^\d,.-]/g, ''));
+  return Number.isFinite(numeric) ? numeric : null;
+};
+const keyFor = value => normalize(value).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'sem-parceiro';
+const personKey = value => normalize(value).replace(/[^a-z0-9]/g, '') || 'sem-nome';
+
+function consultantHeaderFor(worksheet) {
+  for (let rowNumber = 1; rowNumber <= Math.min(worksheet.rowCount, 10); rowNumber += 1) {
+    const indexes = {};
+    rowTexts(worksheet.getRow(rowNumber)).forEach((value, index) => {
+      const text = normalize(value);
+      const column = index + 1;
+      if (!indexes.name && /^consultor/.test(text)) indexes.name = column;
+      if (!indexes.tenure && /m de casa/.test(text)) indexes.tenure = column;
+      if (!indexes.movel && /fisicos.*movel/.test(text)) indexes.movel = column;
+      if (!indexes.ftth && /fisicos.*ftth/.test(text)) indexes.ftth = column;
+      if (!indexes.revenue && /receita telecom|telecom tt/.test(text)) indexes.revenue = column;
+      if (!indexes.partner && /praceiro|parceiro/.test(text)) indexes.partner = column;
+    });
+    if (indexes.name && indexes.movel && indexes.ftth && indexes.revenue) return { rowNumber, indexes };
+  }
+  return null;
+}
+
+function consultantSnapshot(workbook, filename) {
+  const groups = new Map();
+  const months = new Set();
+  const sheets = [];
+  for (const worksheet of workbook.worksheets) {
+    const month = monthFor(worksheet.name);
+    const header = month ? consultantHeaderFor(worksheet) : null;
+    if (!month || !header) continue;
+    sheets.push(worksheet.name);
+    months.add(month);
+    for (let rowNumber = header.rowNumber + 1; rowNumber <= worksheet.rowCount; rowNumber += 1) {
+      const row = worksheet.getRow(rowNumber);
+      const name = textOf(row.getCell(header.indexes.name).value).trim();
+      if (!name) continue;
+      const partnerName = textOf(header.indexes.partner ? row.getCell(header.indexes.partner).value : '').trim() || 'Sem parceiro';
+      const partnerId = keyFor(partnerName);
+      const id = partnerId + ':' + personKey(name);
+      const tenureText = textOf(header.indexes.tenure ? row.getCell(header.indexes.tenure).value : '').trim();
+      const tenure = /abaixo|ate 3|menos de 3/.test(normalize(tenureText)) ? 'new' : 'experienced';
+      const point = {
+        id, name, partnerId, partnerName, month, tenure,
+        values: {
+          receita: numberValue(row.getCell(header.indexes.revenue).value),
+          movel: numberValue(row.getCell(header.indexes.movel).value),
+          ftth: numberValue(row.getCell(header.indexes.ftth).value),
+        },
+      };
+      if (!groups.has(id)) groups.set(id, []);
+      const history = groups.get(id);
+      const sameMonth = history.findIndex(item => item.month === month);
+      if (sameMonth >= 0) history[sameMonth] = point;
+      else history.push(point);
+    }
+  }
+  if (!sheets.length || !groups.size) return null;
+  const orderedMonths = [...months].sort();
+  const partners = [...new Map([...groups.values()].flat().map(point => [point.partnerId, { id: point.partnerId, name: point.partnerName }])).values()];
+  const consultants = [...groups.values()].map(history => {
+    history.sort((a, b) => a.month.localeCompare(b.month));
+    return { ...history.at(-1), history };
+  });
+  return {
+    source: { report: filename, importedAt: new Date().toISOString(), sheets, rows: consultants.length },
+    latestMonth: orderedMonths.at(-1),
+    months: orderedMonths,
+    partners,
+    consultants,
+    warnings: [],
+  };
+}
+
 export async function parseQuartilWorkbook(buffer, filename = 'quartil.xlsx') {
   const workbook = new ExcelJS.Workbook();
   try { await workbook.xlsx.load(buffer); }
@@ -108,10 +194,15 @@ export async function parseQuartilWorkbook(buffer, filename = 'quartil.xlsx') {
       importedRows += 1;
     }
   }
-  if (!sheets.length) throw new Error('Não encontrei uma tabela com as colunas Q1, Q2, Q3, Q4 e Q5.');
+  if (!sheets.length) {
+    const snapshot = consultantSnapshot(workbook, filename);
+    if (snapshot) return { kind: 'snapshot', snapshot, source: snapshot.source };
+  }
+  if (!sheets.length) throw new Error('Não encontrei uma tabela de faixas Q1–Q5 nem abas mensais de consultores no arquivo Excel.');
   const missing = TENURES.flatMap(tenure => METRICS.filter(metric => !rules[tenure].metrics[metric]).map(metric => `${rules[tenure].label} · ${metric}`));
   if (missing.length) throw new Error(`A planilha precisa conter as faixas de: ${missing.join(', ')}.`);
   return {
+    kind: 'rules',
     rules,
     source: { report: filename, importedAt: new Date().toISOString(), sheets, rows: importedRows },
   };

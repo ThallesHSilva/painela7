@@ -53,3 +53,18 @@ test('lê planilha Excel de faixas de quartil', async () => {
   assert.equal(parsed.rules.experienced.metrics.receita[0].min, 3000);
   assert.equal(parsed.rules.new.metrics.receita[4].max, 0);
 });
+
+test('lê planilha Excel mensal de consultores', async () => {
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet('Ago_26');
+  sheet.addRow(['Consultor', 'M de CASA', 'FISICOS MÓVEL', 'RECEITA MÓVEL', 'FISICOS FTTH', 'RECEITA FTTH', 'RECEITA TELECOM TT', 'Parceiro']);
+  sheet.addRow(['Ana Souza', 'ACIMA DE M3', 10, 100, 2, 20, 500, 'A7 CONNECT']);
+  sheet.addRow(['Bruno Lima', 'ABAIXO DE M3', 5, 50, 1, 10, 100, 'A7 CONNECT']);
+  const buffer = await workbook.xlsx.writeBuffer();
+  const parsed = await parseQuartilWorkbook(buffer, 'consultores.xlsx');
+  assert.equal(parsed.kind, 'snapshot');
+  assert.deepEqual(parsed.snapshot.months, ['2026-08']);
+  assert.equal(parsed.snapshot.consultants.length, 2);
+  assert.equal(parsed.snapshot.consultants[0].values.receita, 500);
+  assert.equal(parsed.snapshot.consultants[1].tenure, 'new');
+});

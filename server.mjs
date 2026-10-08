@@ -14,7 +14,7 @@ import { exportRows, toCsv, toXlsx } from './exports/treatments.mjs';
 import { makePdf } from './reports/pdf.mjs';
 import { makeHtml, reportStyleHash } from './reports/html.mjs';
 import { generatePlan } from './reports/ai.mjs';
-import { quartilesFor } from './frontend/quartil-rules.js';
+import { QUARTIL_RULES, quartilesFor } from './frontend/quartil-rules.js';
 import { parseQuartilWorkbook } from './ingestion/quartil.mjs';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
@@ -137,21 +137,31 @@ export function createApp({ dataDir = path.join(root, 'data') } = {}) {
       if (!req.file) return res.status(400).json({ error: 'Selecione uma planilha Excel (.xlsx) de quartil.' });
       const parsed = await parseQuartilWorkbook(req.file.buffer, req.file.originalname);
       await fs.mkdir(dataDir, { recursive: true });
-      const rulesRecord = { rules: parsed.rules, source: parsed.source };
-      await fs.writeFile(path.join(dataDir, 'quartil.rules.json'), JSON.stringify(rulesRecord, null, 2) + '\n', 'utf8');
+      let activeRules = QUARTIL_RULES;
+      if (parsed.kind === 'rules') {
+        activeRules = parsed.rules;
+        const rulesRecord = { rules: parsed.rules, source: parsed.source };
+        await fs.writeFile(path.join(dataDir, 'quartil.rules.json'), JSON.stringify(rulesRecord, null, 2) + '\n', 'utf8');
+      } else {
+        try {
+          const savedRules = JSON.parse(await fs.readFile(path.join(dataDir, 'quartil.rules.json'), 'utf8'));
+          activeRules = savedRules.rules ?? activeRules;
+        } catch (error) { if (error.code !== 'ENOENT') throw error; }
+      }
       await fs.writeFile(path.join(dataDir, 'quartil.rules.xlsx'), req.file.buffer);
       let snapshot = null;
       try { snapshot = JSON.parse(await fs.readFile(path.join(dataDir, 'quartil.snapshot.json'), 'utf8')); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+      if (parsed.kind === 'snapshot') snapshot = parsed.snapshot;
       if (snapshot?.consultants) {
         for (const consultant of snapshot.consultants) {
-          for (const point of consultant.history ?? []) point.quartiles = quartilesFor(consultant, point, parsed.rules);
+          for (const point of consultant.history ?? []) point.quartiles = quartilesFor(consultant, point, activeRules);
           const latest = consultant.history?.at(-1) ?? consultant;
-          consultant.quartiles = quartilesFor(consultant, latest, parsed.rules);
+          consultant.quartiles = quartilesFor(consultant, latest, activeRules);
         }
         snapshot.source = parsed.source;
         await fs.writeFile(path.join(dataDir, 'quartil.snapshot.json'), JSON.stringify(snapshot, null, 2) + '\n', 'utf8');
       }
-      res.status(201).json({ ok: true, source: parsed.source, consultants: snapshot?.consultants?.length ?? 0, rules: parsed.rules });
+      res.status(201).json({ ok: true, source: parsed.source, consultants: snapshot?.consultants?.length ?? 0, rules: activeRules });
     } catch (error) { next(error); }
   });
   registerLibrary(app, { dataDir, load, save, view, locked, root });
