@@ -405,3 +405,47 @@ td small { color: #9fb4be; }
   .quartil-ranking-tools { width: 100%; }
   .quartil-ranking .table-wrap, .quartil-partner-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 }
+
+/* Refinos do ciclo de faixas e alertas. */
+:root {
+  --bg: #1e2d37;
+  --dark-surface: #243640;
+  --dark-elevated: #2a414c;
+}
+html, body { background: var(--bg); }
+body { background-image: radial-gradient(circle at 8% 0%, #345568 0, transparent 30%), radial-gradient(circle at 92% 10%, #3b3c67 0, transparent 26%); }
+.quartil-rules-panel { margin: 0 0 18px; border: 1px solid #45616e; border-radius: 15px; background: linear-gradient(145deg, #2a414d, #233640); box-shadow: 0 10px 26px #07131b36, inset 0 1px 0 #ffffff0b; overflow: hidden; }
+.quartil-rules-panel summary { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 18px 20px; color: var(--ink); cursor: pointer; list-style: none; }
+.quartil-rules-panel summary::-webkit-details-marker { display: none; }
+.quartil-rules-panel summary > span:first-child { display: grid; gap: 4px; }
+.quartil-rules-panel summary .quartil-eyebrow { margin: 0; font-size: 9px; }
+.quartil-rules-panel summary strong { font-size: 15px; letter-spacing: -.1px; }
+.quartil-rules-panel summary small { color: var(--muted); font-size: 10px; }
+.quartil-rules-chevron { display: grid; place-items: center; width: 30px; height: 30px; border: 1px solid #52707d; border-radius: 9px; color: #c5d2ff; font-size: 18px; transition: transform .18s ease, background .18s ease; }
+.quartil-rules-panel[open] .quartil-rules-chevron { transform: rotate(180deg); background: #354d5b; }
+.quartil-rules-body { padding: 0 20px 18px; }
+.quartil-rules-body .table-wrap { border: 1px solid #405b68; border-radius: 11px; overflow: auto; }
+.quartil-rules-table { min-width: 900px; }
+.quartil-rules-table th, .quartil-rules-table td { padding: 10px 12px; }
+.quartil-rules-table thead th { background: #304a57; color: #d2e0e5; }
+.quartil-rules-table tbody th[scope="row"] { min-width: 110px; background: #293f4a; color: #edf4f7; text-align: left; }
+.quartil-rules-table td { color: #c4d4da; font-size: 11px; }
+.quartil-rules-group th { padding: 9px 12px; background: #354d5b; color: #aebcff; font-size: 10px; letter-spacing: .06em; text-align: left; text-transform: uppercase; }
+.quartil-rules-body .quartil-helper { margin: 12px 0 0; }
+.quartil-stat-button.alerta::before { background: #ff9d55; }
+.quartil-stat-button.alerta .quartil-stat-label { color: #ffc18e; }
+.quartil-stat-button.alerta.active { border-color: #ffb77a; background: linear-gradient(145deg, #604638, #44362f); box-shadow: 0 0 0 2px #ff9d5544, 0 10px 22px #07131b66; }
+.quartil-table .quartil-consultant-row.has-alert { box-shadow: inset 3px 0 0 #ff9d55; }
+.quartil-row-alert { display: inline-flex; width: fit-content; margin-top: 4px; padding: 2px 6px; border: 1px solid #a96643; border-radius: 5px; background: #553b32; color: #ffc18e !important; font-size: 9px; font-weight: 700; }
+.quartil-insight-alert { background: linear-gradient(145deg, #5a4435, #3b3433); border-color: #9c6848; }
+.quartil-insight-alert::before { background: #ff9d55; }
+.quartil-insight-alert .quartil-insight-icon { background: #704d38; border-color: #b8794e; color: #ffd1aa; }
+.quartil-insight-alert .quartil-insight-heading { color: #ffc18e; }
+.quartil-alert-tone { border-color: #9c6848; }
+@media (min-width: 801px) {
+  .quartil-insight-grid:has(.quartil-insight-alert) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (max-width: 700px) {
+  .quartil-rules-panel summary { padding: 16px; }
+  .quartil-rules-body { padding: 0 16px 16px; }
+}
