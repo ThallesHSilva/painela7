@@ -81,6 +81,30 @@ export function quartilesFor(consultant, point = consultant) {
   return Object.fromEntries(QUARTIL_METRICS.map(metric => [metric, quartileFor(consultant.tenure, metric, point?.values?.[metric])]));
 }
 
+export function quartilScore(consultant) {
+  return QUARTIL_METRICS.reduce((sum, metric) => sum + ({ 1: 5, 2: 4, 3: 3, 4: 2, 5: 1 }[consultant?.quartiles?.[metric]] || 0), 0);
+}
+
+export function rankQuartilConsultants(consultants, mode = 'score', metric = 'receita') {
+  return [...consultants].sort((a, b) => {
+    if (mode === 'metric') {
+      const aValue = Number(a?.values?.[metric]);
+      const bValue = Number(b?.values?.[metric]);
+      const aHasValue = Number.isFinite(aValue);
+      const bHasValue = Number.isFinite(bValue);
+      if (aHasValue !== bHasValue) return aHasValue ? -1 : 1;
+      if (aHasValue && bValue !== aValue) return bValue - aValue;
+      const aQuartile = Number(a?.quartiles?.[metric]);
+      const bQuartile = Number(b?.quartiles?.[metric]);
+      if (aQuartile !== bQuartile) return (aQuartile || 99) - (bQuartile || 99);
+    } else {
+      const scoreDifference = quartilScore(b) - quartilScore(a);
+      if (scoreDifference !== 0) return scoreDifference;
+    }
+    return String(a?.name ?? '').localeCompare(String(b?.name ?? ''), 'pt-BR');
+  });
+}
+
 export function alertFor(consultant) {
   const history = consultant?.history?.length ? consultant.history : [consultant];
   let consecutive = 0;
