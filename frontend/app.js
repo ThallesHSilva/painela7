@@ -44,9 +44,10 @@ function renderQuartil() {
   const data = quartilSnapshot, target = $('#quartil-content');
   const metricLabels = QUARTIL_LABELS;
   const fmtMoney = value => value === null || value === undefined ? '—' : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
-  const valueLabel = (metric, value) => metric === 'receita' ? fmtMoney(value) : fmt(value);
+  const valueLabel = (metric, value) => ['receita', 'receita_renovacoes'].includes(metric) ? fmtMoney(value) : fmt(value);
   const quartile = value => value === null || value === undefined ? '<span class="quartil-missing">Sem dado</span>' : `<span class="quartil-q q${value}">Q${value}</span>`;
   const score = quartilScore;
+  const maxScore = QUARTIL_METRICS.length * 5;
   const change = (row, months) => row.comparisons?.[months]?.changes?.[selectedQuartilMetric];
   const evolution = value => value === null || value === undefined ? 'Sem histórico' : value > 0 ? 'Evoluiu' : value < 0 ? 'Regrediu' : 'Neutro';
   const isAlert = row => alertFor(row).active;
@@ -112,7 +113,15 @@ function renderQuartil() {
     + `<section class="quartil-section"><div class="quartil-section-head"><div><span class="quartil-eyebrow">Distribuição atual · ${metricLabels[selectedQuartilMetric]}</span><h3>Como a operação está distribuída?</h3></div><span class="quartil-source">Fonte: ${esc(data.source.report)}</span></div><div class="quartil-distribution"><div class="quartil-band ${selectedQuartilBand ? 'has-selection' : ''}">${dist}</div><div class="quartil-legend">${legend}</div><p class="quartil-helper">Clique em uma faixa para filtrar o ranking individual.</p></div><div class="table-wrap quartil-partner-wrap"><table class="quartil-partner-table"><thead><tr><th>Parceiro</th><th>Consultores</th><th>Distribuição</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th><th>Q5</th></tr></thead><tbody>${partnerRows}</tbody></table></div></section>`
     + `<section class="quartil-section"><div class="quartil-section-head"><div><span class="quartil-eyebrow">Movimento da base · ${metricLabels[selectedQuartilMetric]}</span><h3>Evolução por janela</h3></div><span class="quartil-helper">Comparação contra a competência anterior disponível</span></div><div class="quartil-evolution"><div class="quartil-evolution-window"><h4>Últimos 3 meses</h4><div class="quartil-stat-grid">${evolutionCards(3)}</div></div><div class="quartil-evolution-window"><h4>Últimos 6 meses</h4><div class="quartil-stat-grid">${evolutionCards(6)}</div></div></div></section>`
     + `<section class="quartil-section quartil-ranking"><div class="quartil-section-head"><div><span class="quartil-eyebrow">Ranking geral</span><h3>Performance individual</h3></div><div class="quartil-ranking-tools"><div class="quartil-tenure-filters" role="group" aria-label="Tempo de casa">${tenureFilters}</div><label class="quartil-search"><span aria-hidden="true">⌕</span><input id="quartil-search" type="search" placeholder="Buscar consultor ou parceiro" aria-label="Buscar consultor ou parceiro" value="${esc(quartilSearch)}"></label></div></div><div class="quartil-results-bar"><span class="quartil-results-count"><b>${rows.length}</b> de ${data.consultants.length} consultores</span>${activeFilters ? `<div class="quartil-active-filters"><span>Filtros ativos</span>${activeFilters}</div>` : ''}</div><div class="table-wrap"><table class="quartil-table"><thead><tr><th>Posição e consultor</th><th>Pontos</th><th>Tempo de casa</th>${QUARTIL_METRICS.map(metric => `<th class="${metric === selectedQuartilMetric ? 'is-metric' : ''}">${metricLabels[metric]}</th>`).join('')}<th class="is-metric">${metricLabels[selectedQuartilMetric]} atual</th><th>Evolução 3 meses</th><th>Evolução 6 meses</th></tr></thead><tbody>${rankingRows}</tbody></table></div><p class="small quartil-source">Exibindo ${rows.length} de ${data.consultants.length} consultores${data.warnings.length ? ` · ${data.warnings.length} avisos de qualidade` : ''}.</p></section>`;
+  target.querySelectorAll('.quartil-points-total').forEach(node => { node.textContent = `/${maxScore}`; });
+  target.querySelectorAll('.quartil-detail-score strong span').forEach(node => { node.textContent = `/${maxScore}`; });
+  target.querySelectorAll('.quartil-score-bar i').forEach(node => {
+    const points = Number(node.closest('.quartil-cell-points')?.querySelector('.quartil-points strong')?.textContent);
+    if (Number.isFinite(points)) node.style.width = `${Math.max(0, Math.min(100, points / maxScore * 100))}%`;
+  });
   const metricToolbar = target.querySelector('.quartil-toolbar');
+  const rulesSummary = target.querySelector('.quartil-rules-panel summary small');
+  if (rulesSummary) rulesSummary.textContent = 'Abra para consultar as regras dos cinco indicadores.';
   if (metricToolbar) {
     metricToolbar.classList.add('quartil-toolbar-compact');
     metricToolbar.innerHTML = `<div class="quartil-metric-switcher" role="group" aria-label="Métrica de análise">${Object.entries(metricLabels).map(([key, label]) => `<button class="quartil-metric-${key} ${key === selectedQuartilMetric ? 'active' : ''}" data-metric="${key}" aria-pressed="${key === selectedQuartilMetric}">${label}</button>`).join('')}</div>`;
@@ -183,6 +192,13 @@ if (executiveNav) {
   importButton.innerHTML = '<span class="nav-import-icon">↑</span><span>Importar bases</span>';
   importButton.onclick = openImport;
   navActions.append(importButton);
+  const exportQuartilButton = document.createElement('a');
+  exportQuartilButton.className = 'nav-link nav-export-quartil';
+  exportQuartilButton.id = 'nav-export-quartil';
+  exportQuartilButton.href = '/api/quartil/export';
+  exportQuartilButton.download = 'quartil.xlsx';
+  exportQuartilButton.innerHTML = '<span class="nav-import-icon">↓</span><span>Exportar quartis</span>';
+  navActions.append(exportQuartilButton);
   executiveNav.append(navActions);
 }
 document.querySelectorAll('#nav-overview').forEach((button, index) => {

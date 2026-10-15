@@ -69,6 +69,22 @@ test('lê planilha Excel mensal de consultores', async () => {
   assert.equal(parsed.snapshot.consultants[1].tenure, 'new');
 });
 
+test('lê Renovações e Receita renovações somente nas competências que possuem as colunas', async () => {
+  const workbook = new ExcelJS.Workbook();
+  const oldSheet = workbook.addWorksheet('Jun_26');
+  oldSheet.addRow(['Consultor', 'M de CASA', 'FISICOS MÓVEL', 'RECEITA MÓVEL', 'FISICOS FTTH', 'RECEITA FTTH', 'RECEITA TELECOM TT', 'Parceiro']);
+  oldSheet.addRow(['Ana Souza', 'ACIMA DE M3', 10, 100, 2, 20, 500, 'BRASILIA']);
+  const currentSheet = workbook.addWorksheet('Set_26');
+  currentSheet.addRow(['Consultor', 'M de CASA', 'FISICOS MÓVEL', 'RECEITA MÓVEL', 'FISICOS FTTH', 'RECEITA FTTH', 'RECEITA TELECOM TT', 'RENOVAÇÕES', 'RECEITA RENOVAÇÕES', 'Parceiro']);
+  currentSheet.addRow(['Ana Souza', 'ACIMA DE M3', 12, 120, 3, 30, 700, 8, 369.93, 'NOVA SUIÇA']);
+  const parsed = await parseQuartilWorkbook(await workbook.xlsx.writeBuffer(), 'novas-metricas.xlsx');
+  const consultant = parsed.snapshot.consultants[0];
+  assert.deepEqual(consultant.history.map(point => [point.month, point.values.renovacoes, point.values.receita_renovacoes]), [
+    ['2026-06', null, null],
+    ['2026-09', 8, 369.93],
+  ]);
+});
+
 test('preserva ponto decimal em resultados de fórmula da receita', async () => {
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet('Set_26');
@@ -96,9 +112,9 @@ test('calcula evolucao contra 3 e 6 competencias anteriores', () => {
   };
   const comparisons = quartilComparisons(consultant);
   assert.equal(comparisons[3].from, '2026-04');
-  assert.deepEqual(comparisons[3].changes, { receita: 1, movel: 1, ftth: 0 });
+  assert.deepEqual(comparisons[3].changes, { receita: 1, movel: 1, ftth: 0, renovacoes: null, receita_renovacoes: null });
   assert.equal(comparisons[6].from, '2026-01');
-  assert.deepEqual(comparisons[6].changes, { receita: 3, movel: 2, ftth: 1 });
+  assert.deepEqual(comparisons[6].changes, { receita: 3, movel: 2, ftth: 1, renovacoes: null, receita_renovacoes: null });
 });
 
 test('vincula o consultor ao parceiro da ultima competencia', async () => {

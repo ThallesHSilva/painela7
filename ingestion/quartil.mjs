@@ -1,7 +1,7 @@
 import ExcelJS from 'exceljs';
 
 const TENURES = ['experienced', 'new'];
-const METRICS = ['receita', 'movel', 'ftth'];
+const METRICS = ['receita', 'movel', 'ftth', 'renovacoes', 'receita_renovacoes'];
 
 const textOf = value => {
   if (value === null || value === undefined) return '';
@@ -24,6 +24,8 @@ function tenureFor(value) {
 
 function metricFor(value) {
   const text = normalize(value);
+  if (/receita.*renovac/.test(text)) return 'receita_renovacoes';
+  if (/renovac/.test(text)) return 'renovacoes';
   if (/ftth|fibra/.test(text)) return 'ftth';
   if (/movel|celular/.test(text)) return 'movel';
   if (/receita|faturamento/.test(text)) return 'receita';
@@ -111,6 +113,8 @@ function consultantHeaderFor(worksheet) {
       if (!indexes.movel && /fisicos.*movel/.test(text)) indexes.movel = column;
       if (!indexes.ftth && /fisicos.*ftth/.test(text)) indexes.ftth = column;
       if (!indexes.revenue && /receita telecom|telecom tt/.test(text)) indexes.revenue = column;
+      if (!indexes.renovacoes && /renovac/.test(text) && !/receita/.test(text)) indexes.renovacoes = column;
+      if (!indexes.receitaRenovacoes && /receita.*renovac/.test(text)) indexes.receitaRenovacoes = column;
       if (!indexes.partner && /praceiro|parceiro/.test(text)) indexes.partner = column;
     });
     if (indexes.name && indexes.movel && indexes.ftth && indexes.revenue) return { rowNumber, indexes };
@@ -143,6 +147,8 @@ function consultantSnapshot(workbook, filename) {
           receita: numberValue(row.getCell(header.indexes.revenue).value),
           movel: numberValue(row.getCell(header.indexes.movel).value),
           ftth: numberValue(row.getCell(header.indexes.ftth).value),
+          renovacoes: header.indexes.renovacoes ? numberValue(row.getCell(header.indexes.renovacoes).value) : null,
+          receita_renovacoes: header.indexes.receitaRenovacoes ? numberValue(row.getCell(header.indexes.receitaRenovacoes).value) : null,
         },
       };
       if (!groups.has(consultantKey)) groups.set(consultantKey, []);
@@ -206,7 +212,17 @@ export async function parseQuartilWorkbook(buffer, filename = 'quartil.xlsx') {
   }
   if (!sheets.length) throw new Error('Não encontrei uma tabela de faixas Q1–Q5 nem abas mensais de consultores no arquivo Excel.');
   const missing = TENURES.flatMap(tenure => METRICS.filter(metric => !rules[tenure].metrics[metric]).map(metric => `${rules[tenure].label} · ${metric}`));
-  if (missing.length) throw new Error(`A planilha precisa conter as faixas de: ${missing.join(', ')}.`);
+  for (const tenure of TENURES) {
+    if (!rules[tenure].metrics.renovacoes && rules[tenure].metrics.movel) {
+      rules[tenure].metrics.renovacoes = rules[tenure].metrics.movel.map(range => ({ ...range }));
+    }
+    if (!rules[tenure].metrics.receita_renovacoes && rules[tenure].metrics.receita) {
+      rules[tenure].metrics.receita_renovacoes = rules[tenure].metrics.receita.map(range => ({ ...range }));
+    }
+  }
+  if (missing.length && TENURES.some(tenure => ['receita', 'movel', 'ftth'].some(metric => !rules[tenure].metrics[metric]))) {
+    throw new Error(`A planilha precisa conter as faixas de: ${missing.join(', ')}.`);
+  }
   return {
     kind: 'rules',
     rules,

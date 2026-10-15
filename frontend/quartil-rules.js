@@ -1,9 +1,11 @@
-export const QUARTIL_METRICS = ['receita', 'movel', 'ftth'];
+export const QUARTIL_METRICS = ['receita', 'movel', 'ftth', 'renovacoes', 'receita_renovacoes'];
 
 export const QUARTIL_LABELS = {
   receita: 'Receita',
   movel: 'Móvel',
   ftth: 'FTTH',
+  renovacoes: 'Renovações',
+  receita_renovacoes: 'Receita renovações',
 };
 
 // A planilha separa consultores acima e abaixo de três meses de casa.
@@ -62,6 +64,13 @@ export const QUARTIL_RULES = {
     },
   },
 };
+
+// AtÃ© que faixas especÃ­ficas sejam importadas, os novos indicadores seguem
+// a escala equivalente: volume como MÃ³vel e valor como Receita.
+for (const tenure of ['experienced', 'new']) {
+  QUARTIL_RULES[tenure].metrics.renovacoes ??= QUARTIL_RULES[tenure].metrics.movel.map(range => ({ ...range }));
+  QUARTIL_RULES[tenure].metrics.receita_renovacoes ??= QUARTIL_RULES[tenure].metrics.receita.map(range => ({ ...range }));
+}
 
 export function setQuartilRules(rules) {
   const next = rules?.rules ?? rules;

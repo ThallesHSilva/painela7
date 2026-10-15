@@ -299,6 +299,33 @@ dialog::backdrop { background: #07131bbd; }
 .executive-nav .nav-link.active { background: #354e5c; color: #f3f8fa; box-shadow: inset 0 0 0 1px #5d7a88; }
 .executive-nav .nav-import-main { background: var(--purple); border-color: var(--purple); color: #101923; }
 .executive-nav .nav-import-main:hover { background: #aa9cff; border-color: #aa9cff; color: #101923; }
+.executive-nav .nav-export-quartil {
+  gap: 7px;
+  background: linear-gradient(145deg, #315d6b, #244653);
+  border-color: #6fabb7;
+  color: #effcff;
+  box-shadow: 0 7px 16px #07131b44, inset 0 1px 0 #ffffff20;
+  font-weight: 600;
+}
+.executive-nav .nav-export-quartil .nav-import-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid #9bd8df;
+  border-radius: 6px;
+  background: #1b3a47;
+  color: #b8f0f2;
+  font-size: 15px;
+}
+.executive-nav .nav-export-quartil:hover,
+.executive-nav .nav-export-quartil:focus-visible {
+  background: linear-gradient(145deg, #3b7180, #2b5664);
+  border-color: #a0e0e5;
+  color: #fff;
+  box-shadow: 0 9px 20px #07131b66, inset 0 1px 0 #ffffff2e;
+  transform: translateY(-1px);
+}
 .company strong { color: #e8f1f4; }
 .company-heading h2, .panel h2, .section-top h2, .action h3, .treatment h3 { color: var(--ink); }
 .company-heading p, .panel .small, .treatment p { color: var(--muted); }
@@ -497,9 +524,19 @@ body { background-image: radial-gradient(circle at 8% 0%, #4b7180 0, transparent
   --metric-color: #51c995;
   --metric-dark: #287f61;
 }
+.quartil-toolbar-compact .quartil-metric-switcher .quartil-metric-renovacoes {
+  --metric-color: #f2b86b;
+  --metric-dark: #9a6425;
+}
+.quartil-toolbar-compact .quartil-metric-switcher .quartil-metric-receita_renovacoes {
+  --metric-color: #ed8ca8;
+  --metric-dark: #93415e;
+}
 .quartil-toolbar-compact .quartil-metric-switcher .quartil-metric-receita { color: #bcb3ff; }
 .quartil-toolbar-compact .quartil-metric-switcher .quartil-metric-movel { color: #7dd9e8; }
 .quartil-toolbar-compact .quartil-metric-switcher .quartil-metric-ftth { color: #83e4b7; }
+.quartil-toolbar-compact .quartil-metric-switcher .quartil-metric-renovacoes { color: #f3c078; }
+.quartil-toolbar-compact .quartil-metric-switcher .quartil-metric-receita_renovacoes { color: #ef9eb8; }
 .quartil-toolbar-compact .quartil-metric-switcher button:hover,
 .quartil-toolbar-compact .quartil-metric-switcher button:focus-visible {
   color: var(--metric-color);
@@ -512,6 +549,7 @@ body { background-image: radial-gradient(circle at 8% 0%, #4b7180 0, transparent
 .quartil-toolbar-compact .quartil-metric-switcher button.active::before {
   background: var(--metric-color);
 }
+.quartil-ranking .quartil-table { min-width: 1320px; }
 
 /* Filtros do ranking: apenas o critério ativo recebe preenchimento. */
 .quartil-ranking-tools .quartil-ranking-mode {
@@ -565,6 +603,12 @@ body { background-image: radial-gradient(circle at 8% 0%, #4b7180 0, transparent
 .quartil-ranking-tools .quartil-ranking-mode-button.quartil-ranking-mode-ftth.active {
   background: linear-gradient(145deg, #287f61, #205b48);
 }
+.quartil-ranking-tools .quartil-ranking-mode-button.quartil-ranking-mode-renovacoes.active {
+  background: linear-gradient(145deg, #9a6425, #70451d);
+}
+.quartil-ranking-tools .quartil-ranking-mode-button.quartil-ranking-mode-receita_renovacoes.active {
+  background: linear-gradient(145deg, #93415e, #672f47);
+}
 .quartil-ranking-tools .quartil-tenure-button.quartil-tenure-experienced {
   color: #7dd9e8;
 }
@@ -578,6 +622,12 @@ body { background-image: radial-gradient(circle at 8% 0%, #4b7180 0, transparent
   background: linear-gradient(145deg, #8c6f28, #66521f);
 }
 @media (max-width: 700px) {
+  .quartil-toolbar-compact .quartil-metric-switcher {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+  .quartil-toolbar-compact .quartil-metric-switcher button { min-width: 0; }
   .quartil-ranking-tools .quartil-tenure-filters {
     display: grid;
     grid-template-columns: 1fr 1fr;

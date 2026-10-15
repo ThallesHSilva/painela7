@@ -135,6 +135,24 @@ export function createApp({ dataDir = path.join(root, 'data') } = {}) {
       next(error);
     }
   });
+  app.get('/api/quartil/export', async (req, res, next) => {
+    try {
+      const workbookPath = path.join(dataDir, 'quartil.rules.xlsx');
+      const buffer = await fs.readFile(workbookPath);
+      let filename = 'quartil.xlsx';
+      try {
+        const snapshot = JSON.parse(await fs.readFile(path.join(dataDir, 'quartil.snapshot.json'), 'utf8'));
+        const sourceName = String(snapshot?.source?.report ?? '').split(/[\\/]/).pop();
+        if (sourceName.toLowerCase().endsWith('.xlsx')) filename = sourceName;
+      } catch (error) { if (error.code !== 'ENOENT') throw error; }
+      filename = filename.replace(/[^a-zA-Z0-9À-ÿ._ -]/g, '_');
+      res.set('Content-Disposition', `attachment; filename="quartil.xlsx"; filename*=UTF-8''${encodeURIComponent(filename)}`);
+      res.type('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet').send(buffer);
+    } catch (error) {
+      if (error.code === 'ENOENT') return res.status(404).json({ error: 'Nenhuma planilha de quartil foi importada ainda.' });
+      next(error);
+    }
+  });
   app.post('/api/quartil/import', quartilUpload.single('file'), async (req, res, next) => {
     try {
       if (!req.file) return res.status(400).json({ error: 'Selecione uma planilha Excel (.xlsx) de quartil.' });

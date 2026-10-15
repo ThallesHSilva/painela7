@@ -93,6 +93,10 @@ test('importa planilha Excel de quartil e recalcula o snapshot', async t => {
   const snapshot = await (await fetch(base + '/api/quartil')).json();
   assert.equal(snapshot.rules.experienced.metrics.receita[0].min, 3000);
   assert.equal(snapshot.consultants[0].quartiles.receita, 5);
+  const exportedResponse = await fetch(base + '/api/quartil/export');
+  assert.equal(exportedResponse.status, 200);
+  assert.match(exportedResponse.headers.get('content-type'), /application\/vnd.openxmlformats-officedocument.spreadsheetml.sheet/);
+  assert(Buffer.from(await exportedResponse.arrayBuffer()).equals(Buffer.from(buffer)));
 });
 
 test('filtro de quartil aceita nome de parceiro com ou sem acento', async t => {
